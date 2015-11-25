@@ -20,6 +20,35 @@ Name: KubernetesMasterNode
 
 Extends: KubernetesNode
 
+Properties:
+  maxMinionCount:
+    Contract: $.string()
+  minionCount:
+    Contract: $.string()
+  maxCPUusage:
+    Contract: $.string()
+  minCPUusage:
+    Contract: $.string()
+  openstackIP:
+    Contract: $.string()
+  tenantName:
+    Contract: $.string()
+  userName:
+    Contract: $.string()
+  userPassword:
+    Contract: $.string()
+  enableGCP:
+    Contract: $.bool()
+    Default: false
+  gcpMinionNodes:
+    Contract: $.string()
+  gcpNodes:
+    Contract: $.string()
+  gcpUserName:
+    Contract: $.string()
+  gcpPassword:
+    Contract: $.string()
+
 Methods:
   initialize:
     Body:
@@ -69,6 +98,48 @@ Methods:
           - $msg: 'Kubernetes API is now available at http://{0}:8080'
           - $ip: coalesce($.instance.floatingIpAddress, $.getIp())
           - $._environment.reporter.report($this, $msg.format($ip))
+
+
+  setupAutoscale:
+    Body:
+      - If: not $.getAttr(autoscaleConfigured, false)
+        Then:
+          - $._environment.reporter.report($this, 'Setup Auto Scale on Master node')
+          - $resources: new(sys:Resources)
+          - $template: $resources.yaml('AutoScale.template').bind(dict(
+                maxMinionCount => $.maxMinionCount,
+                minionCount => $.minionCount,
+                maxCPUusage => $.maxCPUusage,
+                minCPUusage => $.minCPUusage,
+                ip => $.getIp(),
+                environmentName =>  $._environment.name,
+                openstackIP => $.openstackIP,
+                tenantName => $.tenantName,
+                userName => $.userName,
+                userPassword => $.userPassword,
+                enableGCP => $.enableGCP,
+                gcpMinionNodes => $.gcpMinionNodes,
+                gcpNodes => $.gcpNodes,
+                gcpUserName => $.gcpUserName,
+                gcpPassword => $.gcpPassword
+              ))
+          - $.instance.agent.call($template, $resources)
+          - $.setAttr(autoscaleConfigured, true)
+
+
+  addGceNode:
+    Body:
+      - $resources: new(sys:Resources)
+      - $template: $resources.yaml('AddGceNode.template')
+      - $.instance.agent.call($template, $resources)
+
+
+  deleteGceNode:
+    Body:
+      - $resources: new(sys:Resources)
+      - $template: $resources.yaml('DeleteGceNode.template')     
+      - $.instance.agent.call($template, $resources)
+
 
   isAvailable:
     Body:

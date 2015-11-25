@@ -24,6 +24,19 @@ Templates:
       assignFloatingIp: $.appConfiguration.assignFloatingIP
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
+    maxMinionCount: $.appConfiguration.maxMinionCount
+    minionCount: $.appConfiguration.minionCount
+    maxCPUusage: $.scaleConfiguration.maxCPUusage
+    minCPUusage: $.scaleConfiguration.minCPUusage
+    openstackIP: $.scaleConfiguration.openstackIP
+    tenantName: $.scaleConfiguration.tenantName
+    userName: $.scaleConfiguration.userName
+    userPassword: $.scaleConfiguration.userPassword
+    enableGCP: $.scaleConfiguration.enableGCP
+    gcpMinionNodes: $.scaleConfiguration.gcpMinionNodes
+    gcpNodes: $.scaleConfiguration.gcpNodes
+    gcpUserName: $.scaleConfiguration.gcpUserName
+    gcpPassword: $.scaleConfiguration.gcpPassword
 
   minionNode:
     ?:
@@ -63,7 +76,7 @@ Application:
   gatewayCount: $.appConfiguration.gatewayCount
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
-  dockerMirror: $.appConfiguration.dockerMirror
+  autoScaling: $.scaleConfiguration.autoScaling
 
 
 Forms:
@@ -83,20 +96,20 @@ Forms:
             underline are allowed
         - name: minionCount
           type: integer
-          label: Initial/current number of Kubernetes nodes
+          label: Initial/current number of minions
           initial: 2
           minValue: 1
           required: true
           description: >-
-            Select number of Kubernetes nodes
+            Select number of minions
         - name: maxMinionCount
           type: integer
-          label: Maximum number of Kubernetes nodes
+          label: Maximum number of minions
           initial: 3
           required: true
           minValue: 1
           description: >-
-            Select maximum number of Kubernetes nodes
+            Select maximum number of minions
         - name: assignFloatingIP
           type: boolean
           initial: true
@@ -128,7 +141,7 @@ Forms:
           type: integer
           label: Initial/current number of gateway nodes
           initial: 1
-          minValue: 1
+          minValue: 0
           required: true
           description: >-
             External traffic will be routed through gateway nodes.
@@ -165,16 +178,94 @@ Forms:
           type: string
           label: Custom Docker registry URL
           description: >-
-            Host IP or domain name of custom Docker registry to use.
+            URL of docker repository mirror to use.
             Leave empty to use Docker default.
           required: false
-        - name: dockerMirror
-          type: string
-          label: Docker registry mirror URL
-          description: >-
-            URL of Docker registry mirror to use.
-            Leave empty to not use one.
+
+  - scaleConfiguration:
+      fields:
+        - name: autoScaling
+          type: boolean
+          initial: true
           required: false
+          label: Enable Auto Scaling
+          description: >-
+            Check to Enable Auto Scaling of Minion Nodes.
+        - name: maxCPUusage
+          type: integer
+          label: Max %Cpu(s)
+          initial: 60
+          minValue: 0
+          required: false
+          description: >-
+            Max CPU usage number for Auto Scaling
+        - name: minCPUusage
+          type: integer
+          label: Min %Cpu(s)
+          initial: 20
+          minValue: 0
+          required: false
+          description: >-
+            Min CPU usage number for Auto Scaling
+        - name: openstackIP
+          type: string
+          required: false
+          label: OpenStack IP
+          description: >-
+            Provide OpenStack Endpoint IP
+        - name: tenantName
+          type: string
+          required: false
+          initial: admin
+          label: Tenant Name
+          description: >-
+            Provide tenant name.
+        - name: userName
+          type: string
+          required: false
+          initial: admin
+          label: User Name
+          description: >-
+            Provide user name.
+        - name: userPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide password for user.
+        - name: enableGCP
+          type: boolean
+          initial: false
+          required: false
+          label: Hybrid Cloud(GCE)
+          description: >-
+            Enable GCE for Hybrid Cloud scale.
+        - name: gcpMinionNodes
+          type: integer
+          initial: 1
+          minValue: 1
+          required: false
+          label: Number of minion nodes
+          description: >-
+            Number of minions from GCE for scale.
+        - name: gcpNodes
+          type: string
+          required: false
+          label: Nodes
+          description: >-
+            Provide Nodes detailes.
+        - name: gcpUserName
+          type: string
+          required: false
+          label: Username
+          description: >-
+            Provide username of GCE account.
+        - name: gcpPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide password for GCE account.
 
   - instanceConfiguration:
       fields:
