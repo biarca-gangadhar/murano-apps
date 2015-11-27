@@ -167,9 +167,9 @@ def scaleDownNodes():
         # GCE Scale Down
         print("GCE Scale Down")
         gceIpManager = "/opt/bin/autoscale/gceIpManager.sh"
-        cmd = "sudo bash "+gceIpManager+" busy_node"
         os.system(scale_script + ' down gce')
         output = subprocess.check_output(cmd, shell=True)
+        cmd = "sudo bash "+gceIpManager+" busy_node"
         output=output.decode("utf-8")[:-1]
         if output in NEW_ADDED_NODES:
             del NEW_ADDED_NODES[output]
