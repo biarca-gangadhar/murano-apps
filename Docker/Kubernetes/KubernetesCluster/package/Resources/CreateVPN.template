@@ -12,21 +12,22 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Add etcd member
 
 Parameters:
-  type: $type
-  username: $username
+  ip: $ip
+  openVPNServerIP: $openVPNServerIP
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup('{0} {1}'.format(args.ip, args.openVPNServerIP)).stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: create-vpn.sh
+    Files: []
+
     Options:
       captureStdout: true
       captureStderr: true
-

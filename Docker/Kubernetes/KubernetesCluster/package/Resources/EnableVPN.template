@@ -12,21 +12,21 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Create TAP
 
 Parameters:
-  type: $type
-  username: $username
+  ip: $ip
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup('{0}'.format(args.ip)).stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: enableVPN.sh
+    Files: []
+
     Options:
       captureStdout: true
       captureStderr: true
-

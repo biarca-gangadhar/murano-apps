@@ -12,21 +12,24 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Checking Docker and Bridge-Utils
 
 Parameters:
-  type: $type
+  ip: $ip
   username: $username
+  password: $password
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  import json
+  output=setup('{0} {1} {2}'.format(args.ip, args.username, args.password)).stdout
+  json_output=json.loads(output)
+  return json_output["status"]
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: check-prerequisites.sh
     Options:
       captureStdout: true
       captureStderr: true
-

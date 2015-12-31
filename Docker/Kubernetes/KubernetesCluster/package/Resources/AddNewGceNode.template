@@ -12,20 +12,21 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Add GCE Public Node
 
 Parameters:
+  ip: $ip
   type: $type
-  username: $username
-
+  masterIp: $masterIp
+  name: $name
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup('{0} {1} {2} {3}'.format(args.ip, args.type, args.masterIp, args.name)).stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: addGceNode.sh
     Options:
       captureStdout: true
       captureStderr: true

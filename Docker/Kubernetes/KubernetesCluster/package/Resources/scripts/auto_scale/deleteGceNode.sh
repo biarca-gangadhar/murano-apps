@@ -6,10 +6,9 @@ set -e
 GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 conf_file="/etc/autoscale/autoscale.conf"
 TEMP_FILE="/tmp/etcd.list"
-HORIZON_LOG="/tmp/autoscale.log"
 
-NODE_USER=$(awk -F "=" '/^gcp_username/ {print $2}' $conf_file)
-NODE_IP=$(bash $GCP_FILE busy_node)
+NODE_USER=$2
+NODE_IP=$(bash $GCP_FILE remove)
 NODE="$NODE_USER@$NODE_IP"
 
 ETCD_BIN="/opt/bin/etcdctl"
@@ -20,6 +19,12 @@ if [ $NODE_IP == "0" ] ; then
     exit 0
 fi
 
+#FILE_AUTO_FLAG="/tmp/autoscale"
+if [ ! -f $FILE_AUTO_FLAG ] ; then
+    AUTO_FLAG=0
+else
+    AUTO_FLAG=`cat $FILE_AUTO_FLAG`
+fi
 
 # files to remove from node
 function clean-files() {
@@ -56,7 +61,10 @@ function stop-services() {
 
 
 # delete this node from kubectl get nodes
-$KUBECTL_BIN label nodes $NODE_IP type-
+$KUBECTL_BIN label nodes $NODE_IP type- || true
+if [ $AUTO_FLAG == "1" ] ; then
+   $KUBECTL_BIN label nodes $NODE_IP creationType- || true
+fi
 $KUBECTL_BIN delete nodes $NODE_IP
 
 remove-etcd
@@ -65,5 +73,4 @@ stop-services
 clean-files
 
 # To settle down the cluster noise
-sleep 5
-
+sleep 3

@@ -25,14 +25,10 @@ Parameters:
   tenantName: $tenantName
   userName : $userName
   userPassword: $userPassword
-  enableGCP: $enableGCP
-  gcpMinionNodes: $gcpMinionNodes
-  gcpNodes: $gcpNodes
-  gcpUserName: $gcpUserName
-  gcpPassword: $gcpPassword
+  totalGceNodes: $totalGceNodes
 
 Body: |
-  return setup('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14}'.format(args.maxMinionCount, args.minionCount, args.maxCPUusage, args.minCPUusage, args.ip,args.environmentName, args.openstackIP, args.tenantName, args.userName, args.userPassword, args.enableGCP, args.gcpMinionNodes, args.gcpNodes, args.gcpUserName, args.gcpPassword)).stdout
+  return setup('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10}'.format(args.maxMinionCount, args.minionCount, args.maxCPUusage, args.minCPUusage, args.ip,args.environmentName, args.openstackIP, args.tenantName, args.userName, args.userPassword, args.totalGceNodes)).stdout
 
 Scripts:
   setup:
@@ -44,14 +40,6 @@ Scripts:
       - auto_scale/metrics.py
       - auto_scale/scale.sh
       - auto_scale/autoscale
-      - auto_scale/addGceNode.sh
-      - auto_scale/deleteGceNode.sh
-      - auto_scale/gceIpManager.sh
-      - auto_scale/kube/reconfDocker.sh
-      - auto_scale/kube/initd/etcd
-      - auto_scale/kube/initd/flanneld
-      - auto_scale/kube/initd/kubelet
-      - auto_scale/kube/initd/kube-proxy
 
     Options:
       captureStdout: true

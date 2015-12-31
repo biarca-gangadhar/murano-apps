@@ -1,180 +1,106 @@
 #!/bin/bash
-# $1 - free_node | busy_node | details
-#
 
-function usage()
-{
-    echo ""
-    echo "Usage: $0 [free_node|busy_node|details]"
-    echo "Options: "
-    echo ""
-    echo "    free_node:   returns first available GCP node IP, 0 if all nodes busy "
-    echo ""
-    echo "    busy_node:   returns the last used GCP node IP, 0 if all nodes free"
-    echo ""
-    echo "    details:      returns detail json format"
-    echo ""
-    echo "Returns -1 if GCP nodes not specified in conf file"
-    echo ""
+# $0 add ipAddr app instanceName
+# $0 add ipAddr man
+# $0 remove
 
-}
+gcp_app_list_file=/etc/autoscale/gcpApp.list
+gcp_man_list_file=/etc/autoscale/gcpMan.list
+TEMP_FILE=tmp
 
+ACTION=$1
+IP=$2
+NODE_TYPE=$3 # app or man
+NAME=$4
 
-if [ $# -ne 1 ] ; then
-    usage
-    exit 1
+if [ ! -f $gcp_app_list_file ]; then
+    touch $gcp_app_list_file
+fi
+if [ ! -f $gcp_man_list_file ]; then
+    touch $gcp_man_list_file
 fi
 
-option=$1
-
-if [ $option != "free_node" ] && [ $option != "busy_node" ] && [ $option != "details" ] && [ $option != "busy_count" ]
-then
-    echo "Unkown Option: $option"
-    usage
-    exit 1
+AUTO_FLAG_FILE="/tmp/autoscale"
+if [ ! -f $AUTO_FLAG_FILE ] ; then
+    AUTO_FLAG=0
+else
+    AUTO_FLAG=`cat $AUTO_FLAG_FILE`
 fi
 
-conf_file="/etc/autoscale/autoscale.conf"
-if [ ! -f $conf_file ] ; then
-    echo "-1"
+if [ $AUTO_FLAG == "1" ]  ; then
+    CREATION="auto"
+else
+    CREATION="static"
+fi
+
+if [ $ACTION == "add" ] && [ $NODE_TYPE == "app" ] ; then
+    echo "$IP;$CREATION;$NAME" >> $gcp_app_list_file
+    exit 0
+elif [ $ACTION == "add" ] && [ $NODE_TYPE == "man" ] ; then
+    echo "$IP;$CREATION;" >> $gcp_man_list_file
     exit 0
 fi
 
-gcp_nodes=$(awk -F "=" '/^gcp_ip/ {print $2}' $conf_file)
-
-# if gcp_nodes are not available
-if [ -z $gcp_nodes ] ; then
-    echo "-1"
-    exit 0
-fi
-
-#json=$(cat tmp)
-json=`curl -s localhost:8080/api/v1/nodes`
-total_nodes=$(echo $json | jq --raw-output ".items | length")
-node_name=$(echo $json | jq --raw-output ".items[0].metadata.name")
-
-GCP_ARRAY=()
-count=0
-
-function create_gcp_array()
+function autoDelete()
 {
-    while IFS=',' read -ra ADDR; do
-        for i in "${ADDR[@]}"; do
-            GCP_ARRAY+=("$i")
-        done
-    done <<< "$gcp_nodes"
-}
-
-function print_gcp_array()
-{
-    for each in "${GCP_ARRAY[@]}"
-    do
-        echo "$each"
+    file=$1
+    count=`wc -l $file | awk '{print $1}'`
+    while [ $count -gt 0 ]; do
+      line=`awk "NR==$count" $file`
+      if [[ "$line" == *"auto"* ]]; then
+        instanceName=`echo $line | cut -f 3 -d ";"`
+        echo "$instanceName" > /tmp/deleteGCENode
+        echo $line | cut -f 1 -d ";"
+        sed $line"d" $file > $file.new
+        mv $file.new $file
+        break
+      fi
+      ((count=count-1))
     done
 }
 
-# return 0 - if available, otherwise -1
-function is_node_available()
+function staticDelete()
 {
-    gcp_node=$1
-    count=0
-    while [ $count -lt $total_nodes ] ; do
-        node_name=$(echo $json | jq --raw-output ".items[$count].metadata.name")
-        if [ $node_name == $gcp_node ] ; then
-            echo "-1"
-            return;
-        fi
-        let count=count+1
+    file=$1
+    count=`wc -l $file | awk '{print $1}'`
+    while [ $count -gt 0 ]; do
+      line=`awk "NR==$count" $file`
+      if [[ "$line" == *"static"* ]]; then
+        instanceName=`echo $line | cut -f 3 -d ";"`
+        echo "$instanceName" > /tmp/deleteGCENode
+        echo $line | cut -f 1 -d ";"
+        sed $count"d" $file > $file.new
+        mv $file.new $file
+        break
+      fi
+      ((count=count-1))
     done
-    count=0
-    echo "0"
 }
 
-function get_free_node()
-{
-    for node in "${GCP_ARRAY[@]}"
-    do
-        ret=$(is_node_available $node)
-        if [ $ret == "0" ] ; then
-            echo $node
-            return;
-        fi
-    done
-    echo "0"
-}
-
-# returns last busy node
-function get_busy_node()
-{
-    #check first node is busy
-    first_node=${GCP_ARRAY[0]}
-    ret=$(is_node_available $first_node)
-    if [ $ret == "0" ] ; then
-        echo "0"
-        return;
+if [ $1 == "remove" ] && [ $AUTO_FLAG == "1" ] ; then
+    ip=`autoDelete $gcp_app_list_file`
+    if [ -z $ip ] ; then
+       ip=`autoDelete $gcp_man_list_file`
     fi
-
-    prev_node=$first_node
-    for node in "${GCP_ARRAY[@]}"
-    do
-        ret=$(is_node_available $node)
-        if [ $ret == "0" ] ; then
-            echo $prev_node
-            return;
-        fi
-        prev_node=$node
-    done
-
-    # all busy. Return last one
-    echo ${GCP_ARRAY[-1]}
-}
-
-function details()
-{
-    total_gcp_nodes=${#GCP_ARRAY[@]}
-    first_node=${GCP_ARRAY[0]}
-    ret=$(is_node_available $first_node)
-    if [ $ret == "0" ] ; then
-       busy_nodes=0
+    echo $ip
+elif [ $1 == "remove" ] ; then
+    ip=`staticDelete $gcp_app_list_file`
+    if [ -z $ip ] ; then
+       ip=`staticDelete $gcp_man_list_file`
     fi
-
-    if [ -z $busy_nodes ] ; then
-        prev_node=$first_node
-        for node in "${GCP_ARRAY[@]}"
-        do
-            ret=$(is_node_available $node)
-            if [ $ret == "0" ] ; then
-                break;
-            fi
-            prev_node=$node
-            let busy_nodes=busy_nodes+1
-        done
-    fi
-    echo "{"
-    echo "\"nodes_list\": \"$gcp_nodes\","
-    echo "\"total_nodes_count\": \"$total_gcp_nodes\","
-    echo "\"busy_nodes_count\": \"$busy_nodes\""
-    echo "}"
-
-}
-
-create_gcp_array
-
-if [ $option == "free_node" ] ; then
-   get_free_node
-   exit 0
-fi
-if [ $option == "busy_node" ] ; then
-   get_busy_node
-   exit 0
-fi
-if [ $option == "details" ] ; then
-   details
-   exit 0
-fi
-if [ $option == "busy_count" ] ; then
-  json=`details`
-  echo $json | jq --raw-output ".busy_nodes_count"
-  exit 0
+    echo $ip
 fi
 
+if [ $ACTION == "busy_count" ] ; then
+    app_node_count=`wc -l $gcp_app_list_file | awk '{print $1}'`
+    man_node_count=`wc -l $gcp_man_list_file | awk '{print $1}'`
+    ((total_nodes=app_node_count+man_node_count))
+    echo $total_nodes
+fi
+
+if [ $ACTION == "auto_busy_node" ] ; then
+    app_node_count=`grep -c ";auto;" $gcp_app_list_file`
+    man_node_count=`grep -c ";auto;" $gcp_man_list_file`
+    ((total_nodes=app_node_count+man_node_count))
+    echo $total_nodes
+fi

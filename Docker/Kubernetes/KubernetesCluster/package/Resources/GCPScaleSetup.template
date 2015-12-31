@@ -12,21 +12,21 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Add GCE Public Node
 
-Parameters:
-  type: $type
-  username: $username
+# Parameters:
+#   gcpAuthCode: $gcpAuthCode
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup().stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: GCPScaleSetup.sh
+    Files:
+      - auto_scale/gce/compute_api.py
     Options:
       captureStdout: true
       captureStderr: true
-

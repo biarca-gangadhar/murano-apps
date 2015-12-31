@@ -32,11 +32,15 @@ Templates:
     tenantName: $.scaleConfiguration.tenantName
     userName: $.scaleConfiguration.userName
     userPassword: $.scaleConfiguration.userPassword
-    enableGCP: $.scaleConfiguration.enableGCP
-    gcpMinionNodes: $.scaleConfiguration.gcpMinionNodes
-    gcpNodes: $.scaleConfiguration.gcpNodes
-    gcpUserName: $.scaleConfiguration.gcpUserName
-    gcpPassword: $.scaleConfiguration.gcpPassword
+    enableGCP: $.hybridCloudConfiguration.enableGCP
+    gcpNodesArray: $.hybridCloudConfiguration.gcpNodes.split(",")
+    gcpUserName: $.hybridCloudConfiguration.gcpUserName
+    gcpPassword: $.hybridCloudConfiguration.gcpPassword
+    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
+    gcpAuthCode: $.hybridCloudConfiguration.gcpAuthCode
+    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+    autoScaling: $.scaleConfiguration.autoScaling
 
   minionNode:
     ?:
@@ -77,6 +81,10 @@ Application:
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
   autoScaling: $.scaleConfiguration.autoScaling
+  gcpNodesArray: $.hybridCloudConfiguration.gcpNodes.split(",")
+  gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+  enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+  enableGCP: $.hybridCloudConfiguration.enableGCP
 
 
 Forms:
@@ -233,6 +241,14 @@ Forms:
           label: Password
           description: >-
             Provide password for user.
+
+  - hybridCloudConfiguration:
+      fields:
+        - name: title
+          type: string
+          required: false
+          hidden: true
+          description: Specify the nodes details that already configured to Kubernetes network 
         - name: enableGCP
           type: boolean
           initial: false
@@ -240,32 +256,50 @@ Forms:
           label: Hybrid Cloud(GCE)
           description: >-
             Enable GCE for Hybrid Cloud scale.
-        - name: gcpMinionNodes
-          type: integer
-          initial: 1
-          minValue: 1
-          required: false
-          label: Number of minion nodes
-          description: >-
-            Number of minions from GCE for scale.
         - name: gcpNodes
           type: string
           required: false
           label: Nodes
           description: >-
-            Provide Nodes detailes.
+            Provide Nodes IP details
         - name: gcpUserName
           type: string
           required: false
           label: Username
           description: >-
-            Provide username of GCE account.
+            Provide username of Node.
         - name: gcpPassword
           type: string
           required: false
           label: Password
           description: >-
-            Provide password for GCE account.
+            Provide password of Node.
+        - name: title
+          type: string
+          required: false
+          hidden: true
+          description: Specify parameters for  GCP instances auto creation/deletion
+        - name: enableAutoCreationGCE
+          type: boolean
+          initial: true
+          label: Enable Creating/Deleting GCE Instances Automatically
+        - name: openVPNServerIP
+          type: string
+          label: OpenVPN Server IP
+          required: false
+          description: Provide OpenVPN Server IP
+        - name: gcpMinionCount
+          type: integer
+          label: Max. GCE nodes count
+          initial: 1
+          minValue: 1
+          required: false
+          description: Provide Max. GCE nodes count
+        - name: gcpAuthCode
+          type: text
+          label: Content of private key file
+          required: false
+          description: Paste the content of key file(.json), downloaded at the time of service account creation
 
   - instanceConfiguration:
       fields:

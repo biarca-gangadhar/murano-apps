@@ -3,6 +3,8 @@
 action=$1
 gcp=$2
 
+AUTO_FLAG_FILE="/tmp/autoscale"
+
 if [ "$action" == "up" ] || [ "$action" == "down" ]
 then
     if [  -z $gcp ]
@@ -67,18 +69,30 @@ elif [ -z $gcp ] && [ $action == "down" ] ; then
     echo "Action ID: $scaleDown"
     task=$(curl -s -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" http://$OPENSTACK_IP:8082/v1/environments/$env_id/actions/$scaleDown)
 elif [ $gcp == "gce" ] && [ $action == "up" ]; then
+    echo 1 > $AUTO_FLAG_FILE
     echo "Action ID: $scaleGceUp"
     task=$(curl -s -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" http://$OPENSTACK_IP:8082/v1/environments/$env_id/actions/$scaleGceUp)
 elif [ $gcp == "gce" ] && [ $action == "down" ]; then
+    echo 1 > $AUTO_FLAG_FILE
     echo "Action ID: $scaleGceDown"
     task=$(curl -s -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" http://$OPENSTACK_IP:8082/v1/environments/$env_id/actions/$scaleGceDown)
 fi
 
-task_id=`echo $task | jq --raw-output ".task_id"`
+task_id=`echo $task | jq --raw-output ".task_id" 2> /dev/null`
 if [ $? -ne 0 ] ; then
-    echo "error: $task"
+    echo 0 > $AUTO_FLAG_FILE
+    #echo "error: $task"
+    echo "Another deployment is going on.."
     exit 1
 fi
+
+if [ ! $task_id ]; then
+    echo 0  > $AUTO_FLAG_FILE
+    echo "Another deployment is going on.."
+    exit 1
+fi
+
+
 echo "Task ID: $task_id"
 
 echo "Waiting for task to complete.."
@@ -99,9 +113,11 @@ while true; do
   if [ $stat == "0" ] ; then
     result=$(curl -s -H "X-Auth-Token: $token" http://$OPENSTACK_IP:8082/v1/environments/$env_id/actions/$task_id)
     if [ $(echo $result | jq ".isException") == "false" ] ; then
+       echo 0 > $AUTO_FLAG_FILE
        echo "Done"
        exit 0
     else
+       echo 0 > $AUTO_FLAG_FILE
        echo "Exception: $(echo $result | jq ".result")"
        exit 1
     fi

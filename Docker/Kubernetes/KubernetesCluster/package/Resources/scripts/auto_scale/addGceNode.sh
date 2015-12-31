@@ -3,13 +3,28 @@
 
 set -e
 
-
 GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 conf_file="/etc/autoscale/autoscale.conf"
+if [ $2 == "app" ] ; then
+    echo "Adding New GCE Node $1" >> /tmp/autoscale.log
+    NODE_IP=$1
+    TYPE=$2
+    NODE_USER="root"
+    NODE_PASSWD="None"
+    MASTER_IP=$3
+    INST_NAME=$4
+elif [ $2 == "man" ] ; then
+    echo "Adding old node to clust" >> /tmp/autoscale.log
+    NODE_IP=$1
+    TYPE=$2
+    NODE_USER=$3
+    NODE_PASSWD=$4
+    MASTER_IP=$5
+else
+    echo "TYPE error"
+    exit 1
+fi
 
-NODE_IP=$(bash $GCP_FILE free_node)
-NODE_USER=$(awk -F "=" '/^gcp_username/ {print $2}' $conf_file)
-NODE_PASSWD=$(awk -F "=" '/^gcp_password/ {print $2}' $conf_file)
 
 if [ -z $NODE_USER ] || [ -z $NODE_PASSWD ] ; then
     echo '{ "error": "GCE nodes not configured"}'
@@ -22,8 +37,10 @@ if [ $NODE_IP == "0" ] ; then
 fi
 
 NODE="$NODE_USER@$NODE_IP"
-echo $NODE
-MASTER_IP=$(awk -F "=" '/^MASTER/ {print $2}' $conf_file)
+if [ -z $MASTER_IP ] ; then
+    echo "MASTER IP Error"
+    exit 1
+fi
 MASTER_URL="http://$MASTER_IP:8080"
 
 # don't afraid to change the ports
@@ -37,6 +54,12 @@ PORT_K8S_MASTER=8080
 BIN_ETCDCTL=/opt/bin/etcdctl
 BIN_KUBECTL=/opt/bin/kubectl
 
+FILE_AUTO_FLAG="/tmp/autoscale"
+if [ ! -f $FILE_AUTO_FLAG ] ; then
+    AUTO_FLAG=0
+else
+    AUTO_FLAG=`cat $FILE_AUTO_FLAG`
+fi
 
 
 function ssh-setup()
@@ -46,7 +69,9 @@ function ssh-setup()
        ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
    fi
    ssh-keyscan $NODE_IP >> ~/.ssh/known_hosts
-   sshpass -p $NODE_PASSWD ssh-copy-id $NODE
+   if [ $NODE_PASSWD != "None" ] ; then
+       sshpass -p $NODE_PASSWD ssh-copy-id $NODE
+   fi
 }
 
 # generate a etcd member name for new node.
@@ -171,7 +196,11 @@ echo FLANNEL_OPTS="\"$FLANNEL_OPTS\"" > /opt/bin/autoscale/kube/default/flanneld
 transfer-files
 run-services
 
+bash $GCP_FILE add $NODE_IP $TYPE $INST_NAME
 sleep 3
 
-$BIN_KUBECTL label nodes $NODE_IP type=GCE
+$BIN_KUBECTL label nodes $NODE_IP type=GCE || true
 
+if [ $AUTO_FLAG == "1" ] ; then
+    $BIN_KUBECTL label nodes $NODE_IP creationType="Auto" || true
+fi

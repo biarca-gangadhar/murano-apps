@@ -12,21 +12,20 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Create GCE Public Node
 
 Parameters:
-  type: $type
-  username: $username
+  name: $name
+  zone: $zone
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup('{0} {1}'.format(args.name, args.zone)).stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: createGceNode.sh
     Options:
       captureStdout: true
       captureStderr: true
-

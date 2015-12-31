@@ -68,6 +68,28 @@ Properties:
     Default: []
     Usage: Out
 
+  gcpMinionCount:
+    Contract: $.int()
+
+  currentGCPNodes:
+    Contract: $.int()
+    Usage: InOut
+    Default: 0
+
+  enableAutoCreationGCE:
+    Contract: $.bool()
+
+  enableGCP:
+    Contract: $.bool()
+
+  gcpNodesArray:
+    Contract: [$.string()]
+  
+  gcpReadyNodesCount:
+    Contract: $.int()
+    Usage: InOut
+    Default: 0
+
 Methods:
   initialize:
     Body:
@@ -76,7 +98,6 @@ Methods:
   isAvailable:
     Body:
       - Return: $.masterNode.isAvailable()
-
 
   deploy:
     Body:
@@ -122,7 +143,7 @@ Methods:
               - $.masterNode.deployInstance()
               - $.minionNodes.take($.nodeCount).pselect($.deployInstance())
               - $.gatewayNodes.take($.gatewayCount).pselect($.deployInstance())
-
+          - $.masterNode.setupGCPScale()
           - $.masterNode.setupEtcd()
           - $.minionNodes.skip($.nodeCount).select($.removeFromCluster())
           - $.gatewayNodes.skip($.gatewayCount).select($.removeFromCluster())
@@ -523,16 +544,52 @@ Methods:
   addGceNode:
     Usage: Action
     Body:
-      - $._environment.reporter.report($this, 'Scaling Kubernetes cluster using GCE public cloud')
-      - $.masterNode.addGceNode()
-      - $._environment.reporter.report($this, 'GCE Public node added to Kubernetes cluster')
+      - If: $.enableAutoCreationGCE = false and $.enableGCP = false
+        Then:
+          - $._environment.reporter.report($this, 'GCE scaling not enabled')
+          - Return: 0
+
+      - If: $.enableGCP = true and $.gcpReadyNodesCount < len($.gcpNodesArray)
+        Then:
+          - $._environment.reporter.report($this, 'Adding a GCE node')
+          - $.gcpReadyNodesCount: $.gcpReadyNodesCount + 1
+          - $.masterNode.addGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+          - Return: 0
+
+      - If: $.enableAutoCreationGCE = true and $.currentGCPNodes < $.gcpMinionCount
+        Then:
+          - $._environment.reporter.report($this, 'Creating and Adding new node')
+          - $.currentGCPNodes: $.currentGCPNodes + 1
+          - $.masterNode.createGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+        Else:
+          - $._environment.reporter.report($this, 'GCE nodes maxed')
 
   deleteGceNode:
     Usage: Action
     Body:
-      - $._environment.reporter.report($this, 'Deleting GCE public node from cluster')
-      - $.masterNode.deleteGceNode()
-      - $._environment.reporter.report($this, 'GCE Public node deleted from Kubernetes cluster')
+      - If: $.enableAutoCreationGCE = false and $.enableGCP = false
+        Then:
+          - $._environment.reporter.report($this, 'GCE scaling not enabled')
+          - Return: 0
+
+      - If: $.enableAutoCreationGCE = true and $.currentGCPNodes > 0
+        Then:
+          - $.currentGCPNodes: $.currentGCPNodes - 1
+          - $._environment.reporter.report($this, 'Deleting GCE node from cluster')
+          - $.masterNode.deleteNewGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+          - Return: 0
+
+      - If: $.enableGCP = true and $.gcpReadyNodesCount > 0
+        Then:
+          - $.gcpReadyNodesCount: $.gcpReadyNodesCount - 1
+          - $._environment.reporter.report($this, 'Deleing GCE node from cluster')
+          - $.masterNode.deleteNewGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+        Else:
+          - $._environment.reporter.report($this, 'No GCE nodes to delete')
 
   scaleRc:
     Arguments:

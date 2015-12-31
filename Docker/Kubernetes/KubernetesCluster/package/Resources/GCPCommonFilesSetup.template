@@ -12,21 +12,30 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Transfer scale files
 
-Parameters:
-  type: $type
-  username: $username
+#Parameters:
+#  gcpMinionCount: $.gcpMinionCount
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup().stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: deleteGceNode.sh
+    EntryPoint: GCPCommonFilesSetup.sh
+    Files:
+      - auto_scale/autoscale.conf
+      - auto_scale/addGceNode.sh
+      - auto_scale/deleteGceNode.sh
+      - auto_scale/gceIpManager.sh
+      - auto_scale/kube/reconfDocker.sh
+      - auto_scale/kube/initd/etcd
+      - auto_scale/kube/initd/flanneld
+      - auto_scale/kube/initd/kubelet
+      - auto_scale/kube/initd/kube-proxy
+
     Options:
       captureStdout: true
       captureStderr: true
-

@@ -15,11 +15,14 @@ Version: 1.0.0
 Name: Add GCE Public Node
 
 Parameters:
-  gcpMinionNodes: $gcpMinionNodes
-  gcpNodes: $gcpNodes
+  ip: $ip
+  type: $type
+  username: $username
+  password: $password
+  masterIp: $masterIp
 
 Body: |
-  return setup().stdout
+  return setup('{0} {1} {2} {3} {4}'.format(args.ip, args.type, args.username, args.password, args.masterIp)).stdout
 
 Scripts:
   setup:
