@@ -3,7 +3,7 @@
 # $1 - GCE external IP
 # $2 - openVPN Server IP
 
-LOG_FILE=/tmp/autoscale.log
+LOG_FILE="/var/log/gce.log"
 
 if [ -z $1 ] || [ -z $2 ] ; then
     echo "$0: GCE external IP error"
@@ -40,9 +40,9 @@ echo "id_rsa of '$OPENVPN_SERVER_IP': $ssh_id"  >> $LOG_FILE
 
 ssh root@$GCE_EXTERNAL_IP "echo $ssh_id >> /root/.ssh/authorized_keys"
 if [ $? != "0" ] ; then
-   echo "Ssh not ssuccessfull" >> /tmp/autoscale.log
+   echo "Ssh not ssuccessfull" >> $LOG_FILE
 fi
-echo "SSH done" >> /tmp/autoscale.log
+echo "SSH done" >> $LOG_FILE
 
 result=`curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/create/$GCE_EXTERNAL_IP`
 if [ $result != "OK" ] ; then

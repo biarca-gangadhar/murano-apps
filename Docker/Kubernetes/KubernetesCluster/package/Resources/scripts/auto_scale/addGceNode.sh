@@ -5,8 +5,10 @@ set -e
 
 GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 conf_file="/etc/autoscale/autoscale.conf"
+LOG_FILE="/var/log/gce.log"
+
 if [ $2 == "app" ] ; then
-    echo "Adding New GCE Node $1" >> /tmp/autoscale.log
+    echo "Adding New GCE Node $1" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
     NODE_USER="root"
@@ -14,7 +16,7 @@ if [ $2 == "app" ] ; then
     MASTER_IP=$3
     INST_NAME=$4
 elif [ $2 == "man" ] ; then
-    echo "Adding old node to clust" >> /tmp/autoscale.log
+    echo "Adding old node to clust" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
     NODE_USER=$3
@@ -172,7 +174,7 @@ ssh-setup
 
 # decide etcd name and add it to etcdctl member list
 create-etcd-name
-echo "ETCD name..  $ETCD_NAME"
+echo "ETCD name..  $ETCD_NAME" >> $LOG_FILE
 /opt/bin/etcdctl member add $ETCD_NAME http://$NODE_IP:$PORT_ETCD_LISTEN_PEER |tail -n +2  > /tmp/etcd.tmp
 
 source /tmp/etcd.tmp
