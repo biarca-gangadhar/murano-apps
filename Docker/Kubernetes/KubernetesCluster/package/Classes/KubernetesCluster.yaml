@@ -79,13 +79,13 @@ Properties:
   enableAutoCreationGCE:
     Contract: $.bool()
 
-  enableGCP:
+  enableExistingNodes:
     Contract: $.bool()
 
-  gcpNodesArray:
+  existingNodesArray:
     Contract: [$.string()]
   
-  gcpReadyNodesCount:
+  curExistingNodesCount:
     Contract: $.int()
     Usage: InOut
     Default: 0
@@ -544,15 +544,15 @@ Methods:
   addGceNode:
     Usage: Action
     Body:
-      - If: $.enableAutoCreationGCE = false and $.enableGCP = false
+      - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
         Then:
           - $._environment.reporter.report($this, 'GCE scaling not enabled')
           - Return: 0
 
-      - If: $.enableGCP = true and $.gcpReadyNodesCount < len($.gcpNodesArray)
+      - If: $.enableExistingNodes = true and $.curExistingNodesCount < len($.existingNodesArray)
         Then:
           - $._environment.reporter.report($this, 'Adding a GCE node')
-          - $.gcpReadyNodesCount: $.gcpReadyNodesCount + 1
+          - $.curExistingNodesCount: $.curExistingNodesCount + 1
           - $.masterNode.addGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - Return: 0
@@ -569,7 +569,7 @@ Methods:
   deleteGceNode:
     Usage: Action
     Body:
-      - If: $.enableAutoCreationGCE = false and $.enableGCP = false
+      - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
         Then:
           - $._environment.reporter.report($this, 'GCE scaling not enabled')
           - Return: 0
@@ -582,9 +582,9 @@ Methods:
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - Return: 0
 
-      - If: $.enableGCP = true and $.gcpReadyNodesCount > 0
+      - If: $.enableExistingNodes = true and $.curExistingNodesCount > 0
         Then:
-          - $.gcpReadyNodesCount: $.gcpReadyNodesCount - 1
+          - $.curExistingNodesCount: $.curExistingNodesCount - 1
           - $._environment.reporter.report($this, 'Deleing GCE node from cluster')
           - $.masterNode.deleteNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
