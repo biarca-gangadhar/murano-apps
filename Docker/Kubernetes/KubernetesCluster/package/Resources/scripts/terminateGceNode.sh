@@ -24,7 +24,7 @@ function LOG()
     echo $1 >> $LOG_FILE
 }
 
-LOG "Creating instance '$NAME' in zone '$ZONE'"
+LOG "Deleting instance '$NAME' in zone '$ZONE'"
 python ${SCRIPTS_PATH}/compute_api.py --action=$ACTION --zone=$ZONE $NAME
 
 exit 0

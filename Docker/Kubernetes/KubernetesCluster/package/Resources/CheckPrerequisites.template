@@ -20,10 +20,7 @@ Parameters:
   password: $password
 
 Body: |
-  import json
-  output=setup('{0} {1} {2}'.format(args.ip, args.username, args.password)).stdout
-  json_output=json.loads(output)
-  return json_output["status"]
+  setup('{0} {1} {2}'.format(args.ip, args.username, args.password)).stdout
 
 Scripts:
   setup:

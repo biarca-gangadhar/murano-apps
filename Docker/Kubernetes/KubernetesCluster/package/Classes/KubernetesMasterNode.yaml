@@ -179,18 +179,13 @@ Methods:
       - $msg: 'New GCE instance created with external IP: {0}'
       - $._environment.reporter.report($this, $msg.format($gce_ip))
       - Try:
-        - $._environment.reporter.report($this, "Checking prerequisites")
+        - $._environment.reporter.report($this, "Verifying and installing prerequisites")
         - $template: $resources.yaml('CheckPrerequisites.template').bind(dict(
               ip => $gce_ip,
               username => "root",
               password => ""
             ))
-        - $result: $.instance.agent.call($template, $resources, 120)
-        - If: $result = 'success'
-          Then:
-            - $._environment.reporter.report($this, "Prequisited installed properly")
-          Else:
-            - $._environment.reporter.report($this, "Prerequisites checking failed")
+        - $.instance.agent.call($template, $resources, 120)
         - $._environment.reporter.report($this, "Creating VPN Connection")
         - $template: $resources.yaml('CreateVPN.template').bind(dict(
               ip => $gce_ip,

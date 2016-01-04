@@ -32,7 +32,7 @@ def create_instance(compute, project, zone, name):
           "autoDelete": True,
           "deviceName": name,
           "initializeParams": {
-            "sourceImage": source_disk_image
+            "sourceImage": source_disk_image,
             "diskSizeGb": "10"
           }
         }

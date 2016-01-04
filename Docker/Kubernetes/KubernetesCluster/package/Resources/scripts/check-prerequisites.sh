@@ -53,7 +53,7 @@ function check-ssh-port()
 {
   count=0
   while [ $count -le 4 ]; do
-     sleep 1
+     sleep 5
      nc -zw3 $IP 22
      if [ $? -eq 0 ]; then
         LOG "I" "Connection success"
@@ -79,7 +79,10 @@ function setup-ssh()
 
 function install-prerequisites()
 {
-  ssh $NODE "sudo apt-get install docker-engine -y" 
+  ssh $NODE "sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D"
+  ssh $NODE "echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' > /etc/apt/sources.list.d/docker.list"
+  ssh $NODE "sudo apt-get update"
+  ssh $NODE "DEBIAN_FRONTEND=noninteractive sudo apt-get install docker-engine -y" 
   ssh $NODE "service docker start"
   ssh $NODE "sudo apt-get install bridge-utils -y"
 }
