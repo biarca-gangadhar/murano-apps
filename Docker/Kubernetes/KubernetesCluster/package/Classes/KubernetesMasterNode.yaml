@@ -38,10 +38,10 @@ Properties:
     Contract: $.string()
   userPassword:
     Contract: $.string()
-  enableGCP:
+  enableExistingNodes:
     Contract: $.bool()
     Default: false
-  gcpNodesArray:
+  existingNodesArray:
     Contract: [$.string()]
   gcpUserName:
     Contract: $.string()
@@ -51,13 +51,13 @@ Properties:
     Contract: $.bool()
   openVPNServerIP:
     Contract: $.string()
-  gcpAuthCode:
+  gcePrivateKey:
     Contract: $.string()
   gcpMinionCount:
     Contract: $.int()
   autoScaling:
     Contract: $.bool()
-  gcpReadyNodesCount:
+  curExistingNodesCount:
     Contract: $.int()
     Default: 0
     Usage: InOut
@@ -120,11 +120,11 @@ Methods:
           - If: $.autoScaling = true
             Then:
               - $resources: new(sys:Resources)
-              - If: $.enableGCP = false
+              - If: $.enableExistingNodes = false
                 Then:
                   - $.staticNodes: 0
                 Else:
-                  - $.staticNodes: len($.gcpNodesArray)
+                  - $.staticNodes: len($.existingNodesArray)
               - If: $.enableAutoCreationGCE = false
                 Then:
                   - $.autoCreationNodes: 0
@@ -157,9 +157,9 @@ Methods:
           - $template: $resources.yaml('GCPScaleSetup.template')
           - $.instance.agent.call($template, $resources, 180)
           - $linux: new(conf:Linux)
-          - $linux.putFile($.instance.agent, $.gcpAuthCode, '/etc/autoscale/MuranoAppDevelopment.json')
+          - $linux.putFile($.instance.agent, $.gcePrivateKey, '/etc/autoscale/MuranoAppDevelopment.json')
 
-      - If: $.enableAutoCreationGCE = true or $.enableGCP = true
+      - If: $.enableAutoCreationGCE = true or $.enableExistingNodes = true
         Then:
           - $resources: new(sys:Resources)
           - $template: $resources.yaml('GCPCommonFilesSetup.template')
@@ -216,11 +216,11 @@ Methods:
   addGceNode:
     Body:
       - $resources: new(sys:Resources)
-      - If: $.gcpReadyNodesCount < len($.gcpNodesArray)
+      - If: $.curExistingNodesCount < len($.existingNodesArray)
         Then:
-          - $tap_ip: $.gcpNodesArray[$.gcpReadyNodesCount]
+          - $tap_ip: $.existingNodesArray[$.curExistingNodesCount]
           - $._environment.reporter.report($this, "Adding node {0} to Cluster".format($tap_ip))
-          - $.gcpReadyNodesCount: $.gcpReadyNodesCount + 1
+          - $.curExistingNodesCount: $.curExistingNodesCount + 1
           - $template: $resources.yaml('AddGceNode.template').bind(dict(
                 ip => $tap_ip,
                 type => "man",
@@ -233,7 +233,7 @@ Methods:
   deleteGceNode:
     Body:
       - $resources: new(sys:Resources)
-      - $.gcpReadyNodesCount: $.gcpReadyNodesCount - 1
+      - $.curExistingNodesCount: $.curExistingNodesCount - 1
       - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
             type => "man",
             username => $.gcpUserName
@@ -256,7 +256,7 @@ Methods:
               ))
           - $.instance.agent.call($template, $resources, 180)
         Else:
-          - $.gcpReadyNodesCount: $.gcpReadyNodesCount - 1
+          - $.curExistingNodesCount: $.curExistingNodesCount - 1
 
   isAvailable:
     Body:

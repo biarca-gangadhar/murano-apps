@@ -32,13 +32,13 @@ Templates:
     tenantName: $.scaleConfiguration.tenantName
     userName: $.scaleConfiguration.userName
     userPassword: $.scaleConfiguration.userPassword
-    enableGCP: $.hybridCloudConfiguration.enableGCP
-    gcpNodesArray: $.hybridCloudConfiguration.gcpNodes.split(",")
+    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+    existingNodesArray: $.hybridCloudConfiguration.existingNodes.split(",")
     gcpUserName: $.hybridCloudConfiguration.gcpUserName
     gcpPassword: $.hybridCloudConfiguration.gcpPassword
     enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
     openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
-    gcpAuthCode: $.hybridCloudConfiguration.gcpAuthCode
+    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
     gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
     autoScaling: $.scaleConfiguration.autoScaling
 
@@ -81,10 +81,10 @@ Application:
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
   autoScaling: $.scaleConfiguration.autoScaling
-  gcpNodesArray: $.hybridCloudConfiguration.gcpNodes.split(",")
+  existingNodesArray: $.hybridCloudConfiguration.existingNodes.split(",")
   gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
   enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
-  enableGCP: $.hybridCloudConfiguration.enableGCP
+  enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
 
 
 Forms:
@@ -244,45 +244,47 @@ Forms:
 
   - hybridCloudConfiguration:
       fields:
-        - name: title
+        - name: title1
           type: string
           required: false
           hidden: true
-          description: Specify the nodes details that already configured to Kubernetes network 
-        - name: enableGCP
+          description: Configure below parameters to scale existing nodes that are already provisioned by OpenVPN
+        - name: enableExistingNodes
           type: boolean
           initial: false
           required: false
-          label: Hybrid Cloud(GCE)
+          label: Use existing openvpn Node(s)
           description: >-
-            Enable GCE for Hybrid Cloud scale.
-        - name: gcpNodes
+            Enable if openVPN nodes already exist in  the network
+        - name: existingNodes
           type: string
           required: false
           label: Nodes
           description: >-
-            Provide Nodes IP details
+            provide comma separated node IP details
         - name: gcpUserName
           type: string
           required: false
           label: Username
           description: >-
-            Provide username of Node.
+            Provide privileged username
         - name: gcpPassword
           type: string
           required: false
           label: Password
           description: >-
-            Provide password of Node.
-        - name: title
+            Provide privileged user password
+
+        - name: title2
           type: string
           required: false
           hidden: true
-          description: Specify parameters for  GCP instances auto creation/deletion
+          description: Configure below parameters for Kubernetes elastic scaling with GCE instances auto creation/deletion
         - name: enableAutoCreationGCE
           type: boolean
           initial: true
-          label: Enable Creating/Deleting GCE Instances Automatically
+          label: Auto create/delete GCE instances
+          description: Enable this flag for elastic hybrid cloud (GCE) scaling
         - name: openVPNServerIP
           type: string
           label: OpenVPN Server IP
@@ -294,10 +296,10 @@ Forms:
           initial: 1
           minValue: 1
           required: false
-          description: Provide Max. GCE nodes count
-        - name: gcpAuthCode
+          description: Provide max gce nodes to use for elastic scaling
+        - name: gcePrivateKey
           type: text
-          label: Content of private key file
+          label: GCE service account private key
           required: false
           description: Paste the content of key file(.json), downloaded at the time of service account creation
 
