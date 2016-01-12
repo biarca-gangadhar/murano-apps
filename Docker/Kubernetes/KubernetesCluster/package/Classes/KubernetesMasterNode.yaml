@@ -168,8 +168,9 @@ Methods:
   createGceNode:
     Body:
       - $resources: new(sys:Resources)
-      - $.name: format('murano-k8s-{0}', randomName())
-      - $._environment.reporter.report($this, "Creating a new GCE instance '{0}'".format($.name))
+      - $.name: format('murano-k8s-{0}', randomName()) 
+      - $msg: 'Creating a new GCE instance {0}'
+      - $._environment.reporter.report($this, $msg.format($.name))
       
       - $template: $resources.yaml('CreateGceNode.template').bind(dict(
             name => $.name,
@@ -179,14 +180,14 @@ Methods:
       - $msg: 'New GCE instance created with external IP: {0}'
       - $._environment.reporter.report($this, $msg.format($gce_ip))
       - Try:
-        - $._environment.reporter.report($this, "Verifying and installing prerequisites")
+        - $._environment.reporter.report($this, 'Verifying and installing prerequisites')
         - $template: $resources.yaml('CheckPrerequisites.template').bind(dict(
               ip => $gce_ip,
               username => "root",
               password => ""
             ))
         - $.instance.agent.call($template, $resources, 120)
-        - $._environment.reporter.report($this, "Creating VPN Connection")
+        - $._environment.reporter.report($this, 'Creating VPN Connection')
         - $template: $resources.yaml('CreateVPN.template').bind(dict(
               ip => $gce_ip,
               openVPNServerIP => $.openVPNServerIP
@@ -194,7 +195,7 @@ Methods:
         - $tap_ip: $.instance.agent.call($template, $resources, 120)
         - $msg: 'VPN connection established with IP: {0}'
         - $._environment.reporter.report($this, $msg.format($tap_ip))
-        - $._environment.reporter.report($this, "Adding to Kubernetes Cluster")
+        - $._environment.reporter.report($this, 'Adding to Kubernetes Cluster')
         - $template: $resources.yaml('AddNewGceNode.template').bind(dict(
               ip => $tap_ip,
               type => "app",
@@ -206,7 +207,8 @@ Methods:
         - As: e
           Do:
           - $._environment.reporter.report_error($this, $e.message)
-          - $._environment.reporter.report($this, "Deleting instance '{0}'".format($.name))
+          - $msg: 'Deleting instance {0}'
+          - $._environment.reporter.report($this, $msg.format($.name))
           - $template: $resources.yaml('TerminateGceNode.template').bind(dict(
                 name => $.name,
                 zone => "us-central1-f"
@@ -219,7 +221,8 @@ Methods:
       - If: $.curExistingNodesCount < len($.existingNodesArray)
         Then:
           - $tap_ip: $.existingNodesArray[$.curExistingNodesCount]
-          - $._environment.reporter.report($this, "Adding node {0} to Cluster".format($tap_ip))
+          - $msg: 'Adding node {0} to Cluster'
+          - $._environment.reporter.report($this, $msg.format($tap_ip))
           - $.curExistingNodesCount: $.curExistingNodesCount + 1
           - $template: $resources.yaml('AddGceNode.template').bind(dict(
                 ip => $tap_ip,
