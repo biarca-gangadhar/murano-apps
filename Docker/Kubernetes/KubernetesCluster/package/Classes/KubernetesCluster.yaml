@@ -547,7 +547,7 @@ Methods:
       - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
         Then:
           - $._environment.reporter.report($this, 'GCE scaling not enabled')
-          - Return: 0
+          - Return:
 
       - If: $.enableExistingNodes = true and $.curExistingNodesCount < len($.existingNodesArray)
         Then:
@@ -555,7 +555,7 @@ Methods:
           - $.curExistingNodesCount: $.curExistingNodesCount + 1
           - $.masterNode.addGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
-          - Return: 0
+          - Return:
 
       - If: $.enableAutoCreationGCE = true and $.currentGCPNodes < $.gcpMinionCount
         Then:
@@ -572,7 +572,7 @@ Methods:
       - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
         Then:
           - $._environment.reporter.report($this, 'GCE scaling not enabled')
-          - Return: 0
+          - Return:
 
       - If: $.enableAutoCreationGCE = true and $.currentGCPNodes > 0
         Then:
@@ -580,7 +580,7 @@ Methods:
           - $._environment.reporter.report($this, 'Deleting GCE node from cluster')
           - $.masterNode.deleteNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
-          - Return: 0
+          - Return:
 
       - If: $.enableExistingNodes = true and $.curExistingNodesCount > 0
         Then:
