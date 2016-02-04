@@ -17,7 +17,7 @@
 # $11 - total no of nodes
 
 log_file=/var/log/autoscale.log
-echo "Auto Scale setup starting" >> $log_file
+echo "Setting up Auto Scale setup" >> $log_file
 conf_file=auto_scale/autoscale.conf
 
 mkdir -p /etc/autoscale
@@ -35,14 +35,15 @@ sed -i "/^\[DEFAULT]/ a\username=${9}" $conf_file
 sed -i "/^\[DEFAULT]/ a\OPENSTACK_IP=${7}" $conf_file
 sed -i "/^\[GCE]/ a\gcp_minion_nodes=${11}" $conf_file
 cp auto_scale/autoscale.conf /etc/autoscale/
-chmod +x auto_scale/*
 export DEBIAN_FRONTEND=noninteractive
 cp auto_scale/metrics.py /opt/bin/autoscale/
 cp auto_scale/scale.sh /opt/bin/autoscale/
+chmod +x /opt/bin/autoscale/metrics.py /opt/bin/autoscale/scale.sh
 cp auto_scale/autoscale /etc/init.d/
-sudo apt-get install python3-numpy -y
-sudo apt-get install jq -y
-sudo apt-get install sshpass -y
+sudo apt-get install python3-numpy -y >> $log_file
+sudo apt-get install jq -y >> $log_file
+sudo apt-get install sshpass -y >> $log_file
+echo "Starting autoscale service" >> $log_file
 service autoscale start
 if [ ! -f  ~/.ssh/id_rsa ] ; then
             ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
