@@ -24,6 +24,13 @@ Templates:
       assignFloatingIp: $.appConfiguration.assignFloatingIP
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
+    autoScaling: $.scaleConfiguration.autoScaling
+    maxCPUusage: $.scaleConfiguration.maxCPUusage
+    minCPUusage: $.scaleConfiguration.minCPUusage
+    openstackIP: $.scaleConfiguration.openstackIP
+    tenantName: $.scaleConfiguration.tenantName
+    userName: $.scaleConfiguration.userName
+    userPassword: $.scaleConfiguration.userPassword
 
   minionNode:
     ?:
@@ -61,6 +68,7 @@ Application:
   gatewayCount: $.appConfiguration.gatewayCount
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
+  autoScaling: $.scaleConfiguration.autoScaling
 
 
 Forms:
@@ -197,3 +205,55 @@ Forms:
           label: Availability zone
           description: Select an availability zone where the application would be installed.
           required: false
+
+  - scaleConfiguration:
+      fields:
+        - name: autoScaling
+          type: boolean
+          initial: true
+          required: false
+          label: Enable Auto Scaling
+          description: >-
+            Check to Enable Auto Scaling of Minion Nodes.
+        - name: maxCPUusage
+          type: integer
+          label: Max %Cpu(s)
+          initial: 60
+          minValue: 0
+          required: false
+          description: >-
+            Max CPU usage number for Auto Scaling
+        - name: minCPUusage
+          type: integer
+          label: Min %Cpu(s)
+          initial: 20
+          minValue: 0
+          required: false
+          description: >-
+            Min CPU usage number for Auto Scaling
+        - name: openstackIP
+          type: string
+          required: false
+          label: Public HAProxy IP
+          description: >-
+            Provide HAProxy public IP
+        - name: tenantName
+          type: string
+          required: false
+          initial: admin
+          label: Tenant Name
+          description: >-
+            Provide tenant name.
+        - name: userName
+          type: string
+          required: false
+          initial: admin
+          label: User Name
+          description: >-
+            Provide user name.
+        - name: userPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide password for user.

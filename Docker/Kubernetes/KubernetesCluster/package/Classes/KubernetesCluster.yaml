@@ -64,6 +64,9 @@ Properties:
     Default: []
     Usage: Out
 
+  autoScaling:
+    Contract: $.bool().notNull()
+    Default: false
 
 Methods:
   initialize:
@@ -134,6 +137,9 @@ Methods:
           - $.setAttr(lastNodeCount, $.nodeCount)
           - $.setAttr(lastGatewayCount, $.gatewayCount)
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+          - If: $.autoScaling != false
+            Then:
+               - $.masterNode.setupAutoscale()
       - $.setAttr(serviceEndpoints, $.serviceEndpoints)
 
 

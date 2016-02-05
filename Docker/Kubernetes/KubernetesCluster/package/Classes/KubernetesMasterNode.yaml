@@ -20,6 +20,62 @@ Name: KubernetesMasterNode
 
 Extends: KubernetesNode
 
+Properties:
+  maxMinionCount:
+    Contract: $.string()
+    Default: ''
+  minionCount:
+    Contract: $.string()
+    Default: ''
+  maxCPUusage:
+    Contract: $.string()
+    Default: ''
+  minCPUusage:
+    Contract: $.string()
+    Default: ''
+  openstackIP:
+    Contract: $.string()
+    Default: ''
+  tenantName:
+    Contract: $.string()
+    Default: ''
+  userName:
+    Contract: $.string()
+    Default: ''
+  userPassword:
+    Contract: $.string()
+    Default: ''
+  enableExistingNodes:
+    Contract: $.bool()
+    Default: false
+  existingNodesArray:
+    Contract: [$.string()]
+    Default: ''
+  gcpUserName:
+    Contract: $.string()
+    Default: ''
+  gcpPassword:
+    Contract: $.string()
+    Default: ''
+  enableAutoCreationGCE:
+    Contract: $.bool()
+    Default: ''
+  openVPNServerIP:
+    Contract: $.string()
+    Default: ''
+  gcePrivateKey:
+    Contract: $.string()
+    Default: ''
+  gcpMinionCount:
+    Contract: $.int()
+    Default: 0
+  autoScaling:
+    Contract: $.bool()
+  curExistingNodesCount:
+    Contract: $.int()
+    Default: 0
+    Usage: InOut
+
 Methods:
   initialize:
     Body:
@@ -70,3 +126,37 @@ Methods:
           - $ip: coalesce($.instance.floatingIpAddress, $.getIp())
           - $._environment.reporter.report($this, $msg.format($ip))
 
+  setupAutoscale:
+    Body:
+      - If: not $.getAttr(autoscaleConfigured, false)
+        Then:
+          - If: $.autoScaling = true
+            Then:
+              - $resources: new(sys:Resources)
+              - If: $.enableExistingNodes = false
+                Then:
+                  - $.staticNodes: 0
+                Else:
+                  - $.staticNodes: len($.existingNodesArray)
+              - If: $.enableAutoCreationGCE = false
+                Then:
+                  - $.autoCreationNodes: 0
+                Else:
+                  - $.autoCreationNodes: $.gcpMinionCount
+              - $totalGcpNodeCount: $.staticNodes + $.autoCreationNodes
+              - $._environment.reporter.report($this, 'Setting up Autoscale on Master Node')
+              - $template: $resources.yaml('AutoScale.template').bind(dict(
+                    maxMinionCount => $.maxMinionCount,
+                    minionCount => $.minionCount,
+                    maxCPUusage => $.maxCPUusage,
+                    minCPUusage => $.minCPUusage,
+                    ip => $.getIp(),
+                    environmentName =>  $._environment.name,
+                    openstackIP => $.openstackIP,
+                    tenantName => $.tenantName,
+                    userName => $.userName,
+                    userPassword => $.userPassword,
+                    totalGceNodes => $totalGcpNodeCount
+                  ))
+              - $.instance.agent.call($template, $resources)
+          - $.setAttr(autoscaleConfigured, true)
