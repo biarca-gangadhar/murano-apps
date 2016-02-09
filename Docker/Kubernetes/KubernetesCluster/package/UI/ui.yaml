@@ -25,12 +25,22 @@ Templates:
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
     autoScaling: $.scaleConfiguration.autoScaling
+    maxMinionCount: $.appConfiguration.maxMinionCount 
+    nodeCount: $.appConfiguration.minionCount
     maxCPUusage: $.scaleConfiguration.maxCPUusage
     minCPUusage: $.scaleConfiguration.minCPUusage
     openstackIP: $.scaleConfiguration.openstackIP
     tenantName: $.scaleConfiguration.tenantName
     userName: $.scaleConfiguration.userName
     userPassword: $.scaleConfiguration.userPassword
+    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+    existingNodes: $.hybridCloudConfiguration.existingNodes
+    gcpUserName: $.hybridCloudConfiguration.gcpUserName
+    gcpPassword: $.hybridCloudConfiguration.gcpPassword
+    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
+    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
 
   minionNode:
     ?:
@@ -69,6 +79,10 @@ Application:
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
   autoScaling: $.scaleConfiguration.autoScaling
+  enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+  existingNodes: $.hybridCloudConfiguration.existingNodes
+  enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+  gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
 
 
 Forms:
@@ -257,3 +271,64 @@ Forms:
           label: Password
           description: >-
             Provide password for user.
+
+  - hybridCloudConfiguration:
+      fields:
+        - name: title1
+          type: string
+          required: false
+          hidden: true
+          description: Configure below parameters to scale existing nodes that are already provisioned by OpenVPN
+        - name: enableExistingNodes
+          type: boolean
+          initial: false
+          required: false
+          label: Use existing openvpn Node(s)
+          description: >-
+            Enable if openVPN nodes already exist in  the network
+        - name: existingNodes
+          type: string
+          required: false
+          label: Nodes
+          description: >-
+            provide comma separated node IP details
+        - name: gcpUserName
+          type: string
+          required: false
+          label: Username
+          description: >-
+            Provide privileged username
+        - name: gcpPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide privileged user password
+
+        - name: title2
+          type: string
+          required: false
+          hidden: true
+          description: Configure below parameters for Kubernetes elastic scaling with GCE instances auto creation/deletion
+        - name: enableAutoCreationGCE
+          type: boolean
+          initial: true
+          label: Auto create/delete GCE instances
+          description: Enable this flag for elastic hybrid cloud (GCE) scaling
+        - name: openVPNServerIP
+          type: string
+          label: OpenVPN Server IP
+          required: false
+          description: Provide OpenVPN Server IP
+        - name: gcpMinionCount
+          type: integer
+          label: Max. GCE nodes count
+          initial: 1
+          minValue: 1
+          required: false
+          description: Provide max gce nodes to use for elastic scaling
+        - name: gcePrivateKey
+          type: text
+          label: GCE service account private key
+          required: false
+          description: Paste the content of key file(.json), downloaded at the time of service account creation

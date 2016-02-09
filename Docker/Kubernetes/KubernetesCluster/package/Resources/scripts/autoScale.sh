@@ -18,6 +18,7 @@
 
 log_file=/var/log/autoscale.log
 echo "Setting up Auto Scale setup" >> $log_file
+echo "Args : $@" >> $log_file
 conf_file=auto_scale/autoscale.conf
 
 mkdir -p /etc/autoscale

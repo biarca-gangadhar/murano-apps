@@ -68,6 +68,28 @@ Properties:
     Contract: $.bool().notNull()
     Default: false
 
+  gcpMinionCount:
+    Contract: $.int()
+
+  currentGCPNodes:
+    Contract: $.int()
+    Usage: InOut
+    Default: 0
+
+  enableAutoCreationGCE:
+    Contract: $.bool()
+
+  enableExistingNodes:
+    Contract: $.bool()
+
+  existingNodes:
+    Contract: $.string()
+
+  curExistingNodesCount:
+    Contract: $.int()
+    Usage: InOut
+    Default: 0
+
 Methods:
   initialize:
     Body:
@@ -84,15 +106,15 @@ Methods:
               - ToPort: 4001
                 FromPort: 4001
                 IpProtocol: tcp
-                External: false
+                External: true
               - ToPort: 7001
                 FromPort: 7001
                 IpProtocol: tcp
-                External: false
+                External: true
               - ToPort: 10250
                 FromPort: 10250
                 IpProtocol: tcp
-                External: false
+                External: true
               - ToPort: 8080
                 FromPort: 8080
                 IpProtocol: tcp
@@ -100,11 +122,11 @@ Methods:
               - ToPort: 2380
                 FromPort: 2380
                 IpProtocol: tcp
-                External: false
+                External: true
               - ToPort: 8285
                 FromPort: 8285
                 IpProtocol: udp
-                External: false
+                External: true
           - $._environment.securityGroupManager.addGroupIngress($securityGroupIngress)
           - $.setAttr(deployed, true)
 
@@ -118,7 +140,7 @@ Methods:
               - $.masterNode.deployInstance()
               - $.minionNodes.take($.nodeCount).pselect($.deployInstance())
               - $.gatewayNodes.take($.gatewayCount).pselect($.deployInstance())
-
+          - $.masterNode.setupGCPScale()
           - $.masterNode.setupEtcd()
           - $.minionNodes.skip($.nodeCount).select($.removeFromCluster())
           - $.gatewayNodes.skip($.gatewayCount).select($.removeFromCluster())
@@ -525,3 +547,54 @@ Methods:
             newSize => $newSize
           ))
       - $.masterNode.instance.agent.call($template, $resources)
+
+  addGceNode:
+    Usage: Action
+    Body:
+      - $.existingNodesArray: $.existingNodes.split(',')
+      - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
+        Then:
+          - $._environment.reporter.report($this, 'GCE scaling not enabled')
+          - Return:
+
+      - If: $.enableExistingNodes = true and $.curExistingNodesCount < len($.existingNodesArray)
+        Then:
+          - $._environment.reporter.report($this, 'Adding a GCE node')
+          - $.curExistingNodesCount: $.curExistingNodesCount + 1
+          - $.masterNode.addGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+          - Return:
+
+      - If: $.enableAutoCreationGCE = true and $.currentGCPNodes < $.gcpMinionCount
+        Then:
+          - $._environment.reporter.report($this, 'Creating and Adding new node')
+          - $.currentGCPNodes: $.currentGCPNodes + 1
+          - $.masterNode.createNewGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+        Else:
+          - $._environment.reporter.report($this, 'GCE nodes maxed')
+
+  deleteGceNode:
+    Usage: Action
+    Body:
+      - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
+        Then:
+          - $._environment.reporter.report($this, 'GCE scaling not enabled')
+          - Return:
+
+      - If: $.enableAutoCreationGCE = true and $.currentGCPNodes > 0
+        Then:
+          - $.currentGCPNodes: $.currentGCPNodes - 1
+          - $._environment.reporter.report($this, 'Deleting GCE node from cluster')
+          - $.masterNode.deleteNewGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+          - Return:
+
+      - If: $.enableExistingNodes = true and $.curExistingNodesCount > 0
+        Then:
+          - $.curExistingNodesCount: $.curExistingNodesCount - 1
+          - $._environment.reporter.report($this, 'Deleing GCE node from cluster')
+          - $.masterNode.deleteNewGceNode()
+          - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
+        Else:
+          - $._environment.reporter.report($this, 'No GCE nodes to delete')
