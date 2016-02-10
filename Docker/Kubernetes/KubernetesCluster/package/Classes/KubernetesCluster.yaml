@@ -81,7 +81,10 @@ Properties:
 
   enableExistingNodes:
     Contract: $.bool()
-
+  gcpUserName:
+    Contract: $.string()
+  gcpPassword:
+    Contract: $.string()
   existingNodes:
     Contract: $.string()
 
@@ -94,7 +97,6 @@ Methods:
   initialize:
     Body:
       - $._environment: $.find(std:Environment).require()
-
 
   deploy:
     Body:
@@ -551,17 +553,19 @@ Methods:
   addGceNode:
     Usage: Action
     Body:
-      - $.existingNodesArray: $.existingNodes.split(',')
       - If: $.enableAutoCreationGCE = false and $.enableExistingNodes = false
         Then:
           - $._environment.reporter.report($this, 'GCE scaling not enabled')
           - Return:
 
+      - $.existingNodesArray: $.existingNodes.split(',')
       - If: $.enableExistingNodes = true and $.curExistingNodesCount < len($.existingNodesArray)
         Then:
           - $._environment.reporter.report($this, 'Adding a GCE node')
+          - $ip: $.existingNodesArray[$.curExistingNodesCount]
+          - $nodeType: 'existing'
+          - $.masterNode.addGceNode($ip, $nodeType, $.gcpUserName, $.gcpPassword)
           - $.curExistingNodesCount: $.curExistingNodesCount + 1
-          - $.masterNode.addGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - Return:
 

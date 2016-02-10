@@ -26,7 +26,7 @@ Templates:
       availabilityZone: $.instanceConfiguration.availabilityZone
     autoScaling: $.scaleConfiguration.autoScaling
     maxMinionCount: $.appConfiguration.maxMinionCount 
-    nodeCount: $.appConfiguration.minionCount
+    minionCount: $.appConfiguration.minionCount
     maxCPUusage: $.scaleConfiguration.maxCPUusage
     minCPUusage: $.scaleConfiguration.minCPUusage
     openstackIP: $.scaleConfiguration.openstackIP
@@ -81,6 +81,8 @@ Application:
   autoScaling: $.scaleConfiguration.autoScaling
   enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
   existingNodes: $.hybridCloudConfiguration.existingNodes
+  gcpUserName: $.hybridCloudConfiguration.gcpUserName
+  gcpPassword: $.hybridCloudConfiguration.gcpPassword
   enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
   gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
 

@@ -195,23 +195,27 @@ Methods:
           - $.setAttr(autoscaleConfigured, true)
 
   addGceNode:
+    Arguments:
+      - ip:
+          Contract: $.string().notNull()
+      - nodeType:
+          Contract: $.string().notNull()
+      - username:
+          Contract: $.string().notNull()
+      - password:
+          Contract: $.string().notNull()
     Body:
       - $resources: new(sys:Resources)
-      - $.existingNodesArray: $.existingNodes.split(',')
-      - If: $.curExistingNodesCount < len($.existingNodesArray)
-        Then:
-          - $tap_ip: $.existingNodesArray[$.curExistingNodesCount]
-          - $msg: 'Adding node {0} to Cluster'
-          - $._environment.reporter.report($this, $msg.format($tap_ip))
-          - $.curExistingNodesCount: $.curExistingNodesCount + 1
-          - $template: $resources.yaml('AddGceNode.template').bind(dict(
-                ip => $tap_ip,
-                type => 'man',
-                username => $.gcpUserName,
-                password => $.gcpPassword,
-                masterIp => $.getIp()
-              ))
-          - $.instance.agent.call($template, $resources, 600)
+      - $msg: 'Adding node {0} to Cluster'
+      - $._environment.reporter.report($this, $msg.format($ip))
+      - $template: $resources.yaml('AddGceNode.template').bind(dict(
+            ip => $tap_ip,
+            type => $nodeType,
+            username => $.gcpUserName,
+            password => $.gcpPassword,
+            masterIp => $.getIp()
+          ))
+      - $.instance.agent.call($template, $resources, 600)
 
   deleteGceNode:
     Body:
@@ -290,4 +294,3 @@ Methods:
           - $.instance.agent.call($template, $resources, 180)
         Else:
           - $.curExistingNodesCount: $.curExistingNodesCount - 1
-
