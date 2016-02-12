@@ -3,7 +3,7 @@
 
 DESCRIPTION="None"
 LOG_FILE="/var/log/gce.log"
-exec 2 >> ${LOG_FILE}
+exec 2>>${LOG_FILE}
 
 # prints to LOG_FILE
 function LOG()

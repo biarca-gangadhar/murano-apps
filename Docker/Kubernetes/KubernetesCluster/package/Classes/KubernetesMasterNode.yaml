@@ -147,6 +147,12 @@ Methods:
     Body:
       - If: not $.getAttr(GCEScaleSetup, false)
         Then:
+          - If: $.enableExistingNodes = true
+            Then:
+              - If: $.existingNodes = '' or $.gcpUserName = '' or $.gcpPassword = ''
+                Then:
+                  - Throw: EmptyValuesError
+                    Message: 'You should fill Nodes, Username and Password to add existing OpenVPN nodes to cluster'
           - If: $.enableAutoCreationGCE = true
             Then:
               - If: $.openVPNServerIP = '' or $.gcePrivateKey = ''
@@ -159,10 +165,6 @@ Methods:
               - $.putFile($.gcePrivateKey, '/etc/autoscale/MuranoAppDevelopment.json')
           - If: $.enableAutoCreationGCE = true or $.enableExistingNodes = true
             Then:
-              - If: $.existingNodes = '' or $.gcpUserName = '' or $.gcpPassword = ''
-                Then:
-                  - Throw: EmptyValuesError
-                    Message: 'You should fill Nodes, Username and Password to add existing OpenVPN nodes to cluster'
               - $._environment.reporter.report($this, 'Setting up GCE scaling')
               - $resources: new(sys:Resources)
               - $template: $resources.yaml('GCPCommonFilesSetup.template')
