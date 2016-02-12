@@ -209,7 +209,7 @@ Methods:
       - $msg: 'Adding node {0} to Cluster'
       - $._environment.reporter.report($this, $msg.format($ip))
       - $template: $resources.yaml('AddGceNode.template').bind(dict(
-            ip => $tap_ip,
+            ip => $ip,
             type => $nodeType,
             username => $.gcpUserName,
             password => $.gcpPassword,
@@ -222,7 +222,7 @@ Methods:
       - $resources: new(sys:Resources)
       - $.curExistingNodesCount: $.curExistingNodesCount - 1
       - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
-            type => 'man',
+            type => 'existing',
             username => $.gcpUserName
           )) 
       - $.instance.agent.call($template, $resources, 600)
@@ -260,7 +260,7 @@ Methods:
         - $._environment.reporter.report($this, 'Adding to Kubernetes Cluster')
         - $template: $resources.yaml('AddNewGceNode.template').bind(dict(
               ip => $tap_ip,
-              type => 'app',
+              type => 'new',
               masterIp => $.getIp(),
               name => $.name
             ))
@@ -281,7 +281,7 @@ Methods:
     Body:
       - $resources: new(sys:Resources)
       - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
-            type => 'app',
+            type => 'new',
             username => $.gcpUserName
           )) 
       - $instanceName: $.instance.agent.call($template, $resources, 180)
