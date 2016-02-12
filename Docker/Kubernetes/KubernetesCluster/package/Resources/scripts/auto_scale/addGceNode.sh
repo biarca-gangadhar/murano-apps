@@ -7,7 +7,7 @@ GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 conf_file="/etc/autoscale/autoscale.conf"
 LOG_FILE="/var/log/gce.log"
 
-if [ $2 == "app" ] ; then
+if [ $2 == "new" ] ; then
     echo "Adding New GCE Node $1" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
@@ -15,7 +15,7 @@ if [ $2 == "app" ] ; then
     NODE_PASSWD="None"
     MASTER_IP=$3
     INST_NAME=$4
-elif [ $2 == "man" ] ; then
+elif [ $2 == "existing" ] ; then
     echo "Adding old node to clust" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
