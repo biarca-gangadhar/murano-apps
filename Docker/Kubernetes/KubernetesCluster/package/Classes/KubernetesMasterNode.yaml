@@ -26,9 +26,9 @@ Properties:
   minionCount:
     Contract: $.string()
   maxCPUusage:
-    Contract: $.string()
+    Contract: $.int()
   minCPUusage:
-    Contract: $.string()
+    Contract: $.int()
   openstackIP:
     Contract: $.string()
   tenantName:
@@ -145,18 +145,29 @@ Methods:
 
   setupGCPScale:
     Body:
-      - If: $.enableAutoCreationGCE = true
+      - If: not $.getAttr(GCEScaleSetup, false)
         Then:
-          - $resources: new(sys:Resources)
-          - $template: $resources.yaml('GCPScaleSetup.template')
-          - $.instance.agent.call($template, $resources, 600)
-          - $.putFile($.gcePrivateKey, '/etc/autoscale/MuranoAppDevelopment.json')
-      - If: $.enableAutoCreationGCE = true or $.enableExistingNodes = true
-        Then:
-          - $._environment.reporter.report($this, 'Setting up GCE scaling')
-          - $resources: new(sys:Resources)
-          - $template: $resources.yaml('GCPCommonFilesSetup.template')
-          - $.instance.agent.call($template, $resources, 600)
+          - If: $.enableAutoCreationGCE = true
+            Then:
+              - If: $.openVPNServerIP = '' or $.gcePrivateKey = ''
+                Then: 
+                  - Throw: EmptyValuesError
+                    Message: 'You should fill Open VPN Server IP and GCE service account private key to enable Auto create/delete GCE instances' 
+              - $resources: new(sys:Resources)
+              - $template: $resources.yaml('GCPScaleSetup.template')
+              - $.instance.agent.call($template, $resources, 600)
+              - $.putFile($.gcePrivateKey, '/etc/autoscale/MuranoAppDevelopment.json')
+          - If: $.enableAutoCreationGCE = true or $.enableExistingNodes = true
+            Then:
+              - If: $.existingNodes = '' or $.gcpUserName = '' or $.gcpPassword = ''
+                Then:
+                  - Throw: EmptyValuesError
+                    Message: 'You should fill Nodes, Username and Password to add existing OpenVPN nodes to cluster'
+              - $._environment.reporter.report($this, 'Setting up GCE scaling')
+              - $resources: new(sys:Resources)
+              - $template: $resources.yaml('GCPCommonFilesSetup.template')
+              - $.instance.agent.call($template, $resources, 600)
+          - $.setAttr(GCEScaleSetup, true)
 
   setupAutoscale:
     Body:
@@ -164,6 +175,11 @@ Methods:
         Then:
           - If: $.autoScaling = true
             Then:
+              - If: $.maxCPUusage = '' or $.minCPUusage = '' or $.tenantName = '' or $.userName = '' or $.userPassword = ''
+                Then: 
+                  - $._environment.reporter.report($this, 'Autoscale not configured because empty values found')
+                  - $.setAttr(autoscaleConfigured, true)
+                  - Return:
               - $resources: new(sys:Resources)
               - If: $.enableExistingNodes = false
                 Then:
@@ -227,7 +243,7 @@ Methods:
           )) 
       - $.instance.agent.call($template, $resources, 600)
 
-  createNewGceNode:
+  addNewGceNode:
     Body:
       - $resources: new(sys:Resources)
       - $.name: format('murano-k8s-{0}', randomName()) 

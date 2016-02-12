@@ -32,10 +32,10 @@ CADVISOR_PORT = '4194'
 # Parsing input parameters from autoscale.conf
 def get_params():
     global MAX_VMS_LIMIT, MIN_VMS_LIMIT, MIN_GCE_VMS_LIMIT
-    global MAX_GCE_VMS_LIMIT, MAX_CPU_LIMIT, MIN_CPU_LIMIT, MASTER
+    global MAX_GCE_VMS_LIMIT, MAX_CPU_LIMIT, MIN_CPU_LIMIT, K8S_MASTER
     configParser = configparser.ConfigParser()
     configParser.read(data_file)
-    MASTER = configParser.get('DEFAULT', 'MASTER')
+    K8S_MASTER = configParser.get('DEFAULT', 'MASTER')
     MAX_VMS_LIMIT = int(configParser.get('DEFAULT', 'max_vms_limit'))
     MIN_VMS_LIMIT = int(configParser.get('DEFAULT', 'min_vms_limit'))
     MAX_CPU_LIMIT = int(configParser.get('DEFAULT', 'MAX_CPU_LIMIT'))
@@ -46,7 +46,9 @@ def get_params():
         MAX_GCE_VMS_LIMIT = 0
 
 
+# Calculate CPU usage of a node
 def get_cpu_usage(node_ip):
+    # Get the no.of cores from cAdvisor
     api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/machine"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
@@ -55,6 +57,7 @@ def get_cpu_usage(node_ip):
     machine_info = json.loads(string)
     num_cores = machine_info["num_cores"]
 
+    # Get the last two CPU usages
     api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/containers/"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
@@ -73,6 +76,8 @@ def get_cpu_usage(node_ip):
     prev_timestamp = prev_status["timestamp"]
     cur_time = numpy.datetime64(cur_timestamp).astype(datetime)
     prev_time = numpy.datetime64(prev_timestamp).astype(datetime)
+
+    # Calculte CPU usage
     raw_cpu_usage = cur_cpu_usage - prev_cpu_usage
     try:
         interval_ns = cur_time - prev_time
@@ -104,8 +109,9 @@ def get_k8s_status():
         return False
 
 
+# Return total no.of minion nodes in cluster
 def get_total_nodes():
-    global NODES_OBJ, UPDATED_NODES_LIST, MASTER
+    global NODES_OBJ, UPDATED_NODES_LIST, K8S_MASTER
     api = "http://"+K8S_MASTER+":"+K8S_PORT+"/api/v1/nodes"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
@@ -124,10 +130,12 @@ def get_total_nodes():
         return -1
 
 
+# Check no.of openstack nodes available
 def get_private_nodes(total):
     return total-get_gcp_nodes()
 
 
+# Check if any nodes available to add
 def get_gcp_nodes():
     if MAX_GCE_VMS_LIMIT == 0:
         return 0
@@ -146,6 +154,7 @@ def print_limits():
     print ("Min CPU Usage Limit: ", MIN_CPU_LIMIT, "\n")
 
 
+# Check if node is in ready state or not. Return false if not ready
 def is_node_ready(minion):
     try:
         if NODES_OBJ["items"][minion]["status"]["conditions"][0]["status"] != \
@@ -156,6 +165,7 @@ def is_node_ready(minion):
     return True
 
 
+# Check node is created by autoscale service or not
 def is_auto_created(minion):
     if "type" in NODES_OBJ["items"][minion]["metadata"]["labels"]:
         if "creationType" in NODES_OBJ["items"][minion]["metadata"]["labels"]:
@@ -166,6 +176,7 @@ def is_auto_created(minion):
         return True
 
 
+# Check nodes list if any removed
 def update_removed_nodes():
     removed_nodes = []
     global UPDATED_NODES_LIST, ALL_NODES, CUR_HYSTERESIS
@@ -223,6 +234,7 @@ print("Waiting for Cluster")
 while (get_k8s_status() is not True):
     time.sleep(1)
 print("cluster is up")
+# Cluster is just Up. Give some time to settle down noise
 time.sleep(20)
 print_limits()
 
@@ -247,6 +259,8 @@ while 1:
         if(cpu_usage is False):
             time.sleep(3)
             continue
+
+        # Check it's a new node or existed node in cluster
         if node_ip not in ALL_NODES:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print (timestamp + " - "+"Started monitoring node " + node_ip)

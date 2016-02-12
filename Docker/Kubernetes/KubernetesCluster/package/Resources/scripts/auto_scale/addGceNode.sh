@@ -19,9 +19,9 @@ elif [ $2 == "existing" ] ; then
     echo "Adding old node to clust" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
-    NODE_USER=$3
-    NODE_PASSWD=$4
-    MASTER_IP=$5
+    MASTER_IP=$3
+    NODE_USER=$4
+    NODE_PASSWD=$5
 else
     echo "TYPE error"
     exit 1
@@ -56,6 +56,7 @@ PORT_K8S_MASTER=8080
 BIN_ETCDCTL=/opt/bin/etcdctl
 BIN_KUBECTL=/opt/bin/kubectl
 
+# Check it's added by autoscale service or UI
 FILE_AUTO_FLAG="/tmp/autoscale"
 if [ ! -f $FILE_AUTO_FLAG ] ; then
     AUTO_FLAG=0
@@ -203,6 +204,7 @@ sleep 3
 
 $BIN_KUBECTL label nodes $NODE_IP type=GCE || true
 
+# If this operation runs from autoscale service, add label
 if [ $AUTO_FLAG == "1" ] ; then
     $BIN_KUBECTL label nodes $NODE_IP creationType="Auto" || true
 fi

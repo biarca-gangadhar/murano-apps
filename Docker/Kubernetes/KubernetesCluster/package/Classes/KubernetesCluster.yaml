@@ -573,7 +573,7 @@ Methods:
         Then:
           - $._environment.reporter.report($this, 'Creating and Adding new node')
           - $.currentGCPNodes: $.currentGCPNodes + 1
-          - $.masterNode.createNewGceNode()
+          - $.masterNode.addNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
         Else:
           - $._environment.reporter.report($this, 'GCE nodes maxed')

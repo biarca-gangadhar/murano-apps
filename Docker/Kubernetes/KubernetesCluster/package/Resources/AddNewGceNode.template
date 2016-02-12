@@ -30,4 +30,3 @@ Scripts:
     Options:
       captureStdout: true
       captureStderr: true
-

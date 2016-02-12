@@ -12,7 +12,7 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Add GCE Public Node
+Name: Add a GCE Public Node
 
 Parameters:
   ip: $ip
@@ -22,7 +22,7 @@ Parameters:
   masterIp: $masterIp
 
 Body: |
-  return setup('{0} {1} {2} {3} {4}'.format(args.ip, args.type, args.username, args.password, args.masterIp)).stdout
+  return setup('{0} {1} {2} {3} {4}'.format(args.ip, args.type, args.masterIp, args.username, args.password)).stdout
 
 Scripts:
   setup:
@@ -32,4 +32,3 @@ Scripts:
     Options:
       captureStdout: true
       captureStderr: true
-

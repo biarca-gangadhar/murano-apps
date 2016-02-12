@@ -3,13 +3,16 @@
 log_file=/var/log/gce.log
 echo "Setting GCP Common files started" >> $log_file
 
+sudo apt-get update &>> $log_file
 sudo apt-get install jq -y &>> $log_file
 sudo apt-get install sshpass -y &>> $log_file
+
 mkdir -p /opt/bin/autoscale
 mkdir -p /opt/bin/autoscale/kube
 mkdir -p /opt/bin/autoscale/kube/initd
 mkdir -p /etc/autoscale
 
+# Transfer the files which adds node into cluster
 cp auto_scale/addGceNode.sh /opt/bin/autoscale/addGceNode.sh
 cp auto_scale/deleteGceNode.sh /opt/bin/autoscale/deleteGceNode.sh
 cp auto_scale/gceIpManager.sh /opt/bin/autoscale/gceIpManager.sh
@@ -25,4 +28,3 @@ fi
 
 echo "Setting GCP Common files Completed" >> $log_file
 exit 0
-

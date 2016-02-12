@@ -86,7 +86,6 @@ scaleDown=`echo $services | grep -o '[a-z0-9-]*_scaleNodesDown'`
 scaleGceUp=`echo $services | grep -o '[a-z0-9-]*_addGceNode'`
 scaleGceDown=`echo $services | grep -o '[a-z0-9-]*_deleteGceNode'`
 
-#  up
 if [ -z $gcp ] && [ $action == "up" ] ; then
     echo "Action ID: $scaleUp"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleUp)

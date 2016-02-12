@@ -314,7 +314,7 @@ Forms:
           description: Configure below parameters for Kubernetes elastic scaling with GCE instances auto creation/deletion
         - name: enableAutoCreationGCE
           type: boolean
-          initial: true
+          initial: false
           label: Auto create/delete GCE instances
           description: Enable this flag for elastic hybrid cloud (GCE) scaling
         - name: openVPNServerIP
