@@ -4,20 +4,20 @@
 # $0 add ipAddr man
 # $0 remove
 
-gcp_app_list_file=/etc/autoscale/gcpApp.list
-gcp_man_list_file=/etc/autoscale/gcpMan.list
+new_nodes_list_file=/etc/autoscale/gcpApp.list
+existing_nodes_list_file=/etc/autoscale/gcpMan.list
 TEMP_FILE=tmp
 
 ACTION=$1
 IP=$2
-NODE_TYPE=$3 # app or man
+NODE_TYPE=$3 # new | existing
 NAME=$4
 
-if [ ! -f $gcp_app_list_file ]; then
-    touch $gcp_app_list_file
+if [ ! -f $new_nodes_list_file ]; then
+    touch $new_nodes_list_file
 fi
-if [ ! -f $gcp_man_list_file ]; then
-    touch $gcp_man_list_file
+if [ ! -f $existing_nodes_list_file ]; then
+    touch $existing_nodes_list_file
 fi
 
 AUTO_FLAG_FILE="/tmp/autoscale"
@@ -33,11 +33,11 @@ else
     CREATION="static"
 fi
 
-if [ $ACTION == "add" ] && [ $NODE_TYPE == "app" ] ; then
-    echo "$IP;$CREATION;$NAME" >> $gcp_app_list_file
+if [ $ACTION == "add" ] && [ $NODE_TYPE == "new" ] ; then
+    echo "$IP;$CREATION;$NAME" >> $new_nodes_list_file
     exit 0
-elif [ $ACTION == "add" ] && [ $NODE_TYPE == "man" ] ; then
-    echo "$IP;$CREATION;" >> $gcp_man_list_file
+elif [ $ACTION == "add" ] && [ $NODE_TYPE == "existing" ] ; then
+    echo "$IP;$CREATION;" >> $existing_nodes_list_file
     exit 0
 fi
 
@@ -78,29 +78,29 @@ function staticDelete()
 }
 
 if [ $1 == "remove" ] && [ $AUTO_FLAG == "1" ] ; then
-    ip=`autoDelete $gcp_app_list_file`
+    ip=`autoDelete $new_nodes_list_file`
     if [ -z $ip ] ; then
-       ip=`autoDelete $gcp_man_list_file`
+       ip=`autoDelete $existing_nodes_list_file`
     fi
     echo $ip
 elif [ $1 == "remove" ] ; then
-    ip=`staticDelete $gcp_app_list_file`
+    ip=`staticDelete $new_nodes_list_file`
     if [ -z $ip ] ; then
-       ip=`staticDelete $gcp_man_list_file`
+       ip=`staticDelete $existing_nodes_list_file`
     fi
     echo $ip
 fi
 
 if [ $ACTION == "busy_count" ] ; then
-    app_node_count=`wc -l $gcp_app_list_file | awk '{print $1}'`
-    man_node_count=`wc -l $gcp_man_list_file | awk '{print $1}'`
-    ((total_nodes=app_node_count+man_node_count))
+    new_nodes_count=`wc -l $new_nodes_list_file | awk '{print $1}'`
+    existing_nodes_count=`wc -l $existing_nodes_list_file | awk '{print $1}'`
+    ((total_nodes=new_nodes_count+existing_nodes_count))
     echo $total_nodes
 fi
 
 if [ $ACTION == "auto_busy_node" ] ; then
-    app_node_count=`grep -c ";auto;" $gcp_app_list_file`
-    man_node_count=`grep -c ";auto;" $gcp_man_list_file`
-    ((total_nodes=app_node_count+man_node_count))
+    new_nodes_count=`grep -c ";auto;" $new_nodes_list_file`
+    existing_nodes_count=`grep -c ";auto;" $existing_nodes_list_file`
+    ((total_nodes=new_nodes_count+existing_nodes_count))
     echo $total_nodes
 fi
