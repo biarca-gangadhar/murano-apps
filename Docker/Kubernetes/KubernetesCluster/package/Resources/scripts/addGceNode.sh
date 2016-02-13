@@ -8,5 +8,5 @@
 # $4 - Username if $2=existing , Instance Name if $2=new
 # $5 - Password if $2=existing
 
-echo "Adding Gce Node. Received args: $1 - $2 - $3 - $4 - $5" >> /var/log/gce.log
+echo "Adding a Gce Node. Received args: $1 - $2 - $3 - $4 - $5" >> /var/log/gce.log
 sudo bash /opt/bin/autoscale/addGceNode.sh $1 $2 $3 $4 $5  >> /var/log/gce.log

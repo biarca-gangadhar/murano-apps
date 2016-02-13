@@ -1,4 +1,5 @@
 #!/bin/bash
+# Detects which nodes to delete
 
 # $0 add ipAddr app instanceName
 # $0 add ipAddr man
@@ -20,6 +21,7 @@ if [ ! -f $existing_nodes_list_file ]; then
     touch $existing_nodes_list_file
 fi
 
+# checkthe node is added by autoscale service or not
 AUTO_FLAG_FILE="/tmp/autoscale"
 if [ ! -f $AUTO_FLAG_FILE ] ; then
     AUTO_FLAG=0
@@ -27,12 +29,15 @@ else
     AUTO_FLAG=`cat $AUTO_FLAG_FILE`
 fi
 
+# If node node is added manually from UI, set that node as static. And don't delete static 
+# nodes by autoscale service
 if [ $AUTO_FLAG == "1" ]  ; then
     CREATION="auto"
 else
     CREATION="static"
 fi
 
+# Write the nodes to file. Helps to delete the last node later
 if [ $ACTION == "add" ] && [ $NODE_TYPE == "new" ] ; then
     echo "$IP;$CREATION;$NAME" >> $new_nodes_list_file
     exit 0
@@ -41,6 +46,7 @@ elif [ $ACTION == "add" ] && [ $NODE_TYPE == "existing" ] ; then
     exit 0
 fi
 
+# Search and delete the record of last node that is created by autoscale service
 function autoDelete()
 {
     file=$1
@@ -59,6 +65,7 @@ function autoDelete()
     done
 }
 
+# Search and delete the record of last node that is created manually
 function staticDelete()
 {
     file=$1
@@ -91,6 +98,8 @@ elif [ $1 == "remove" ] ; then
     echo $ip
 fi
 
+
+# returns total GCE node in Cluster
 if [ $ACTION == "busy_count" ] ; then
     new_nodes_count=`wc -l $new_nodes_list_file | awk '{print $1}'`
     existing_nodes_count=`wc -l $existing_nodes_list_file | awk '{print $1}'`
@@ -98,6 +107,7 @@ if [ $ACTION == "busy_count" ] ; then
     echo $total_nodes
 fi
 
+# return how many nodes are added to cluster using autoscale service
 if [ $ACTION == "auto_busy_node" ] ; then
     new_nodes_count=`grep -c ";auto;" $new_nodes_list_file`
     existing_nodes_count=`grep -c ";auto;" $existing_nodes_list_file`

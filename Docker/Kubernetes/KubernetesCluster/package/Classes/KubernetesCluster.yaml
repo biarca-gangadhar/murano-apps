@@ -34,6 +34,9 @@ Properties:
       - $.class(KubernetesMinionNode).notNull()
       - 1
 
+  hybridCloudAutoScale:
+    Contract: $.class(HybridCloudAutoScale).notNull()
+
   nodeCount:
     Contract: $.int().notNull().check($ > 0)
     Usage: InOut
@@ -142,7 +145,7 @@ Methods:
               - $.masterNode.deployInstance()
               - $.minionNodes.take($.nodeCount).pselect($.deployInstance())
               - $.gatewayNodes.take($.gatewayCount).pselect($.deployInstance())
-          - $.masterNode.setupGCPScale()
+          - $.hybridCloudAutoScale.setupGCPScale()
           - $.masterNode.setupEtcd()
           - $.minionNodes.skip($.nodeCount).select($.removeFromCluster())
           - $.gatewayNodes.skip($.gatewayCount).select($.removeFromCluster())
@@ -163,7 +166,7 @@ Methods:
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - If: $.autoScaling != false
             Then:
-               - $.masterNode.setupAutoscale()
+               - $.hybridCloudAutoScale.setupAutoscale()
       - $.setAttr(serviceEndpoints, $.serviceEndpoints)
 
 
@@ -564,7 +567,7 @@ Methods:
           - $._environment.reporter.report($this, 'Adding a GCE node')
           - $ip: $.existingNodesArray[$.curExistingNodesCount]
           - $nodeType: 'existing'
-          - $.masterNode.addGceNode($ip, $nodeType, $.gcpUserName, $.gcpPassword)
+          - $.hybridCloudAutoScale.addGceNode($ip, $nodeType, $.gcpUserName, $.gcpPassword)
           - $.curExistingNodesCount: $.curExistingNodesCount + 1
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - Return:
@@ -573,7 +576,7 @@ Methods:
         Then:
           - $._environment.reporter.report($this, 'Creating and Adding new node')
           - $.currentGCPNodes: $.currentGCPNodes + 1
-          - $.masterNode.addNewGceNode()
+          - $.hybridCloudAutoScale.addNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
         Else:
           - $._environment.reporter.report($this, 'GCE nodes maxed')
@@ -590,7 +593,7 @@ Methods:
         Then:
           - $.currentGCPNodes: $.currentGCPNodes - 1
           - $._environment.reporter.report($this, 'Deleting GCE node from cluster')
-          - $.masterNode.deleteNewGceNode()
+          - $.hybridCloudAutoScale.deleteNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
           - Return:
 
@@ -598,7 +601,7 @@ Methods:
         Then:
           - $.curExistingNodesCount: $.curExistingNodesCount - 1
           - $._environment.reporter.report($this, 'Deleing GCE node from cluster')
-          - $.masterNode.deleteNewGceNode()
+          - $.hybridCloudAutoScale.deleteNewGceNode()
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
         Else:
           - $._environment.reporter.report($this, 'No GCE nodes to delete')

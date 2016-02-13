@@ -24,23 +24,6 @@ Templates:
       assignFloatingIp: $.appConfiguration.assignFloatingIP
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
-    autoScaling: $.scaleConfiguration.autoScaling
-    maxMinionCount: $.appConfiguration.maxMinionCount 
-    minionCount: $.appConfiguration.minionCount
-    maxCPUusage: $.scaleConfiguration.maxCPUusage
-    minCPUusage: $.scaleConfiguration.minCPUusage
-    openstackIP: $.scaleConfiguration.openstackIP
-    tenantName: $.scaleConfiguration.tenantName
-    userName: $.scaleConfiguration.userName
-    userPassword: $.scaleConfiguration.userPassword
-    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
-    existingNodes: $.hybridCloudConfiguration.existingNodes
-    gcpUserName: $.hybridCloudConfiguration.gcpUserName
-    gcpPassword: $.hybridCloudConfiguration.gcpPassword
-    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
-    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
-    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
-    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
 
   minionNode:
     ?:
@@ -68,11 +51,33 @@ Templates:
       assignFloatingIp: $.appConfiguration.assignGatewayFloatingIP
       keyname: $.instanceConfiguration.keyPair
 
+  hybridCloudAutoScale:
+    ?:
+      type: io.murano.apps.docker.kubernetes.HybridCloudAutoScale
+    autoScaling: $.scaleConfiguration.autoScaling
+    maxMinionCount: $.appConfiguration.maxMinionCount
+    minionCount: $.appConfiguration.minionCount
+    maxCPUusage: $.scaleConfiguration.maxCPUusage
+    minCPUusage: $.scaleConfiguration.minCPUusage
+    openstackIP: $.scaleConfiguration.openstackIP
+    tenantName: $.scaleConfiguration.tenantName
+    userName: $.scaleConfiguration.userName
+    userPassword: $.scaleConfiguration.userPassword
+    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+    existingNodes: $.hybridCloudConfiguration.existingNodes
+    gcpUserName: $.hybridCloudConfiguration.gcpUserName
+    gcpPassword: $.hybridCloudConfiguration.gcpPassword
+    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
+    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey 
+
 Application:
   ?:
     type: io.murano.apps.docker.kubernetes.KubernetesCluster
   name: $.appConfiguration.name
   masterNode: $masterNode
+  hybridCloudAutoScale: $hybridCloudAutoScale
   minionNodes: repeat($minionNode, $.appConfiguration.maxMinionCount)
   nodeCount: $.appConfiguration.minionCount
   gatewayCount: $.appConfiguration.gatewayCount
@@ -85,6 +90,7 @@ Application:
   gcpPassword: $.hybridCloudConfiguration.gcpPassword
   enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
   gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+  
 
 
 Forms:
