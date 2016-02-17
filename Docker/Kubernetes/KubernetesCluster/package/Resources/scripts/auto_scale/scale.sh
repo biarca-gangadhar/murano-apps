@@ -46,14 +46,14 @@ function check-ssl()
 
 PORT_KEYSTONE=5000
 PORT_MURANO=8082
-proto=`check-ssl $OPENSTACK_IP $PORT_KEYSTONE`
+proto=$(check-ssl $OPENSTACK_IP $PORT_KEYSTONE)
 KEYSTONE_URL="$proto://$OPENSTACK_IP:$PORT_KEYSTONE"
-proto=`check-ssl $OPENSTACK_IP $PORT_MURANO`
+proto=$(check-ssl $OPENSTACK_IP $PORT_MURANO)
 MURANO_URL="$proto://$OPENSTACK_IP:$PORT_MURANO"
 
 
 # Get Keystone token
-token=`curl -s -k -d '{ "auth": {"tenantName": "'"$tenant"'", "passwordCredentials": {"username": "'"$username"'", "password": "'"$password"'"}}}' -H "$header" $KEYSTONE_URL/v2.0/tokens | jq --raw-output '.access.token.id'`
+token=$(curl -s -k -d '{ "auth": {"tenantName": "'"$tenant"'", "passwordCredentials": {"username": "'"$username"'", "password": "'"$password"'"}}}' -H "$header" $KEYSTONE_URL/v2.0/tokens | jq --raw-output '.access.token.id')
 if [ -z $token ]; then
     echo "Token Error"
     exit 1
@@ -61,12 +61,12 @@ fi
 echo "Token: $token"
 # Get the k8s environment ID.
 envs=$(curl -s -k -H "X-Auth-Token: $token" $MURANO_URL/v1/environments)
-total_envs=`echo $envs | jq ".environments |  length"`
+total_envs=$(echo $envs | jq ".environments |  length")
 count=0
 while [ $count -lt $total_envs ]; do
-    name=`echo $envs | jq --raw-output ".environments[$count].name"`
+    name=$(echo $envs | jq --raw-output ".environments[$count].name")
     if [ $env_name == $name ] ; then
-        env_id=`echo $envs | jq --raw-output ".environments[$count].id"`
+        env_id=$(echo $envs | jq --raw-output ".environments[$count].id")
         break
     fi
     let count=count+1
@@ -81,12 +81,11 @@ echo "Env ID: $env_id"
 services=$(curl -s -k -H "X-Auth-Token: $token" $MURANO_URL/v1/environments/$env_id/services)
 
 # Get action Id's in easy and dirty way
-scaleUp=`echo $services | grep -o '[a-z0-9-]*_scaleNodesUp'`
-scaleDown=`echo $services | grep -o '[a-z0-9-]*_scaleNodesDown'`
-scaleGceUp=`echo $services | grep -o '[a-z0-9-]*_addGceNode'`
-scaleGceDown=`echo $services | grep -o '[a-z0-9-]*_deleteGceNode'`
+scaleUp=$(echo $services | grep -o '[a-z0-9-]*_scaleNodesUp')
+scaleDown=$(echo $services | grep -o '[a-z0-9-]*_scaleNodesDown')
+scaleGceUp=$(echo $services | grep -o '[a-z0-9-]*_addGceNode')
+scaleGceDown=$(echo $services | grep -o '[a-z0-9-]*_deleteGceNode')
 
-#  up
 if [ -z $gcp ] && [ $action == "up" ] ; then
     echo "Action ID: $scaleUp"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleUp)
@@ -103,7 +102,7 @@ elif [ $gcp == "gce" ] && [ $action == "down" ]; then
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleGceDown)
 fi
 
-task_id=`echo $task | jq --raw-output ".task_id" 2> /dev/null`
+task_id=$(echo $task | jq --raw-output ".task_id" 2> /dev/null)
 if [ $? -ne 0 ] ; then
     echo 0 > $AUTO_FLAG_FILE
     #echo "error: $task"
@@ -125,7 +124,7 @@ echo "Waiting for task to complete.."
 # function that checks task complition. 0 if finish, 1 otherwise
 function finish_task {
    result=$(curl -s -k -H "X-Auth-Token: $token" $MURANO_URL/v1/environments/$env_id/actions/$task_id)
-   if [ $(echo $result | jq ".isException") == null ] ; then
+   if [ "$(echo $result | jq ".isException")" == null ] ; then
        echo "1"
    else
        echo "0"
@@ -137,7 +136,7 @@ while true; do
   stat=$(finish_task)
   if [ $stat == "0" ] ; then
     result=$(curl -s -k -H "X-Auth-Token: $token" $MURANO_URL/v1/environments/$env_id/actions/$task_id)
-    if [ $(echo $result | jq ".isException") == "false" ] ; then
+    if [ "$(echo $result | jq ".isException")" == "false" ] ; then
        echo 0 > $AUTO_FLAG_FILE
        echo "Done"
        exit 0

@@ -12,10 +12,7 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Transfer scale files
-
-#Parameters:
-#  gcpMinionCount: $.gcpMinionCount
+Name: Transfer node scaling files
 
 Body: |
   return setup().stdout

@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 import json
-import sys
 import urllib.request
 import time
 import numpy
 import os
-import signal
 import configparser
 import subprocess
 from datetime import datetime
@@ -21,30 +19,37 @@ MIN_CPU_LIMIT = 0
 CUR_NODES_COUNT = 0
 POLLING_CLUSTER_PERIOD = 15
 NODES_OBJ = {}
-ALL_NODES={} # { "nodeIP" { "cpu" : 40, "auto": True } }
+ALL_NODES = {}  # { "nodeIP" { "cpu" : 40, "auto": True } }
 MAX_HYSTERESIS_COUNT = 6
-CUR_HYSTERESIS = { "count": 0, "sample_type": None } # { sample_type="scaleUp" or "scaleDown" }
-UPDATED_NODES_LIST=[]
+# sample_type could be "scaleUp" or "scaleDown"
+CUR_HYSTERESIS = {"count": 0, "sample_type": None}
+UPDATED_NODES_LIST = []
+K8S_MASTER = ''
+K8S_PORT = '8080'
+CADVISOR_PORT = '4194'
+
 
 # Parsing input parameters from autoscale.conf
 def get_params():
     global MAX_VMS_LIMIT, MIN_VMS_LIMIT, MIN_GCE_VMS_LIMIT
-    global MAX_GCE_VMS_LIMIT, MAX_CPU_LIMIT, MIN_CPU_LIMIT, MASTER
+    global MAX_GCE_VMS_LIMIT, MAX_CPU_LIMIT, MIN_CPU_LIMIT, K8S_MASTER
     configParser = configparser.ConfigParser()
     configParser.read(data_file)
-    MASTER = configParser.get('DEFAULT', 'MASTER')
+    K8S_MASTER = configParser.get('DEFAULT', 'MASTER')
     MAX_VMS_LIMIT = int(configParser.get('DEFAULT', 'max_vms_limit'))
     MIN_VMS_LIMIT = int(configParser.get('DEFAULT', 'min_vms_limit'))
     MAX_CPU_LIMIT = int(configParser.get('DEFAULT', 'MAX_CPU_LIMIT'))
     MIN_CPU_LIMIT = int(configParser.get('DEFAULT', 'MIN_CPU_LIMIT'))
     try:
         MAX_GCE_VMS_LIMIT = int(configParser.get('GCE', 'gcp_minion_nodes'))
-    except Exception as e:
+    except Exception:
         MAX_GCE_VMS_LIMIT = 0
 
 
+# Calculate CPU usage of a node
 def get_cpu_usage(node_ip):
-    api = "http://"+node_ip+":4194/api/v1.3/machine"
+    # Get the no.of cores from cAdvisor
+    api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/machine"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
     decode_response = (response.read().decode('utf-8'))
@@ -52,7 +57,8 @@ def get_cpu_usage(node_ip):
     machine_info = json.loads(string)
     num_cores = machine_info["num_cores"]
 
-    api = "http://"+node_ip+":4194/api/v1.3/containers/"
+    # Get the last two CPU usages
+    api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/containers/"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
     decode_response = (response.read().decode('utf-8'))
@@ -70,10 +76,12 @@ def get_cpu_usage(node_ip):
     prev_timestamp = prev_status["timestamp"]
     cur_time = numpy.datetime64(cur_timestamp).astype(datetime)
     prev_time = numpy.datetime64(prev_timestamp).astype(datetime)
+
+    # Calculte CPU usage
     raw_cpu_usage = cur_cpu_usage - prev_cpu_usage
     try:
         interval_ns = cur_time - prev_time
-    except Exception as e:
+    except Exception:
         return False
     if interval_ns != 0:
         cpu_usage = raw_cpu_usage/interval_ns
@@ -89,22 +97,22 @@ def get_cpu_usage(node_ip):
 
 # retuns True, if cluster is ready.
 def get_k8s_status():
-    api = "http://"+MASTER+":8080"
+    api = "http://"+K8S_MASTER+":"+K8S_PORT
     request = urllib.request.Request(api)
     try:
         response = urllib.request.urlopen(request)
         if response.status == 200:
             print("OK")
             return True
-    except Exception as e:
-        print("not OK")
-        print(e)
+    except Exception:
+        print("Cluster is not Ready")
         return False
 
 
+# Return total no.of minion nodes in cluster
 def get_total_nodes():
-    global NODES_OBJ,UPDATED_NODES_LIST
-    api = "http://"+MASTER+":8080/api/v1/nodes"
+    global NODES_OBJ, UPDATED_NODES_LIST, K8S_MASTER
+    api = "http://"+K8S_MASTER+":"+K8S_PORT+"/api/v1/nodes"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
     decode_response = (response.read().decode('utf-8'))
@@ -113,22 +121,24 @@ def get_total_nodes():
     NODES_OBJ = nodes_info
     try:
         number_minions = len(nodes_info["items"])
-        UPDATED_NODES_LIST=[]
-        for i in range(0,number_minions):
-              UPDATED_NODES_LIST.append(NODES_OBJ["items"][i]["metadata"]["name"])
+        UPDATED_NODES_LIST = []
+        for i in range(0, number_minions):
+            UPDATED_NODES_LIST.append(
+                NODES_OBJ["items"][i]["metadata"]["name"])
         return number_minions
-    except Exception as e:
+    except Exception:
         return -1
 
+
+# Check no.of openstack nodes available
 def get_private_nodes(total):
     return total-get_gcp_nodes()
 
 
+# Check if any nodes available to add
 def get_gcp_nodes():
     if MAX_GCE_VMS_LIMIT == 0:
         return 0
-    # gce_nodes=os.system("sudo ./gceIpManger.sh busy_count")
-    # print(gce_nodes)
     gceIpManager = "/opt/bin/autoscale/gceIpManager.sh"
     cmd = "sudo bash "+gceIpManager+" busy_count"
     output = subprocess.check_output(cmd, shell=True)
@@ -144,15 +154,18 @@ def print_limits():
     print ("Min CPU Usage Limit: ", MIN_CPU_LIMIT, "\n")
 
 
+# Check if node is in ready state or not. Return false if not ready
 def is_node_ready(minion):
     try:
         if NODES_OBJ["items"][minion]["status"]["conditions"][0]["status"] != \
            "True":
             return False
-    except Exception as e:
+    except Exception:
         return False
     return True
 
+
+# Check node is created by autoscale service or not
 def is_auto_created(minion):
     if "type" in NODES_OBJ["items"][minion]["metadata"]["labels"]:
         if "creationType" in NODES_OBJ["items"][minion]["metadata"]["labels"]:
@@ -161,11 +174,11 @@ def is_auto_created(minion):
             return False
     else:
         return True
-   
 
 
+# Check nodes list if any removed
 def update_removed_nodes():
-    removed_nodes=[]
+    removed_nodes = []
     global UPDATED_NODES_LIST, ALL_NODES, CUR_HYSTERESIS
     for n in ALL_NODES:
         if n not in UPDATED_NODES_LIST:
@@ -175,6 +188,7 @@ def update_removed_nodes():
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print (timestamp + " - " + n + " node removed from cluster")
         CUR_HYSTERESIS["count"] = 0
+
 
 def scaleUpNodes():
     if (private_nodes < MAX_VMS_LIMIT):
@@ -200,7 +214,7 @@ def scaleDownNodes():
         gceIpManager = "/opt/bin/autoscale/gceIpManager.sh"
         cmd = "sudo bash "+gceIpManager+" auto_busy_node"
         output = subprocess.check_output(cmd, shell=True)
-        output=output.decode("utf-8")[:-1]
+        output = output.decode("utf-8")[:-1]
         if (output != "0"):
             print("GCE Scale Down")
             os.system(scale_script + ' down gce')
@@ -220,6 +234,7 @@ print("Waiting for Cluster")
 while (get_k8s_status() is not True):
     time.sleep(1)
 print("cluster is up")
+# Cluster is just Up. Give some time to settle down noise
 time.sleep(20)
 print_limits()
 
@@ -232,7 +247,7 @@ while 1:
     update_removed_nodes()
     while minion < total_minions:
         node_ip = NODES_OBJ["items"][minion]["metadata"]["name"]
-     
+
         if (is_node_ready(minion) is False):
             minion += 1
             time.sleep(3)
@@ -244,16 +259,18 @@ while 1:
         if(cpu_usage is False):
             time.sleep(3)
             continue
+
+        # Check it's a new node or existed node in cluster
         if node_ip not in ALL_NODES:
-           timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-           print (timestamp + " - "+"Started monitoring node " + node_ip)
-           CUR_HYSTERESIS["count"] = 0
-           time.sleep(POLLING_CLUSTER_PERIOD)
-           if is_auto_created(minion-1):
-               ALL_NODES[node_ip] = { "cpu": cpu_usage,"auto": True }
-           else:
-               ALL_NODES[node_ip] = { "cpu": cpu_usage,"auto": False }
-        
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print (timestamp + " - "+"Started monitoring node " + node_ip)
+            CUR_HYSTERESIS["count"] = 0
+            time.sleep(POLLING_CLUSTER_PERIOD)
+            if is_auto_created(minion-1):
+                ALL_NODES[node_ip] = {"cpu": cpu_usage, "auto": True}
+            else:
+                ALL_NODES[node_ip] = {"cpu": cpu_usage, "auto": False}
+
         ALL_NODES[node_ip]["cpu"] = cpu_usage
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print (timestamp + " - CPU usage of "+node_ip+" :", cpu_usage)
@@ -261,17 +278,19 @@ while 1:
 
     private_nodes = get_private_nodes(total_minions)
     if not ALL_NODES:
-        CUR_HYSTERESIS["count"]=0
+        CUR_HYSTERESIS["count"] = 0
         time.sleep(POLLING_CLUSTER_PERIOD)
         continue
-    AUTO_CREATED_NODES = dict((node,details) for node, details in ALL_NODES.items() if details["auto"])
-    if all(MAX_CPU_LIMIT > v['cpu'] > MIN_CPU_LIMIT for v in ALL_NODES.values()):
+    AUTO_CREATED_NODES = dict((node, details) for node,
+                              details in ALL_NODES.items() if details["auto"])
+    if all(MAX_CPU_LIMIT > v['cpu'] > MIN_CPU_LIMIT
+            for v in ALL_NODES.values()):
         # All nodes in within threshold level
         CUR_HYSTERESIS["count"] = 0
         time.sleep(POLLING_CLUSTER_PERIOD)
         continue
-    elif any(v['cpu'] < MIN_CPU_LIMIT for v in ALL_NODES.values()) and \
-        any(v['cpu'] > MAX_CPU_LIMIT for v in ALL_NODES.values()):
+    elif (any(v['cpu'] < MIN_CPU_LIMIT for v in ALL_NODES.values())
+          and any(v['cpu'] > MAX_CPU_LIMIT for v in ALL_NODES.values())):
             # Some nodes are above max and below min threshold
             CUR_HYSTERESIS["count"] = 0
             time.sleep(POLLING_CLUSTER_PERIOD)

@@ -1,6 +1,6 @@
 #!/bin/bash
+# This file checks and install docker and bridge-utils packages
 
-DESCRIPTION="None"
 LOG_FILE="/var/log/gce.log"
 exec 2>>${LOG_FILE}
 
@@ -41,7 +41,7 @@ elif [ $# -eq 2 ] ; then
   USERNAME=$2
   PASSWORD=""
 else
-  msg=`build-status "error" "Worng arguments"`
+  msg=$(build-status "error" "Worng arguments")
   MESSAGE "E" "$msg"
   exit 0
 fi
@@ -49,12 +49,13 @@ fi
 NODE="$USERNAME@$IP"
 LOG "IP: $IP, USERNAME: $USERNAME, PASSWORD: $PASSWORD, NODE: $NODE"
 
+# Function that check node is in n/w and ssh port is open
 function check-ssh-port()
 {
   count=0
   while [ $count -le 4 ]; do
      sleep 5
-     nc -zw3 $IP 22
+     nc -zw3 "$IP" 22   # check port 22
      if [ $? -eq 0 ]; then
         LOG "I" "Connection success"
         return 0
@@ -63,13 +64,22 @@ function check-ssh-port()
         LOG "I" "Connection failed($count). Retrying.."
      fi
   done
+  # SSH port is not in open. 
   return 1
 }
 
+check-ssh-port
+if [ $? -ne 0 ] ; then
+    msg=$(build-status "error" "SSH port not opened. Timed out.")
+    MESSAGE "E" "$msg"
+    exit 0
+fi
+
+# setup SSH without asking password every time
 function setup-ssh()
 {
-  ssh-keygen -R $IP &> /dev/null
-  ssh-keyscan -H $IP >> ~/.ssh/known_hosts
+  ssh-keygen -R "$IP" &> /dev/null
+  ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts
   if [ -z $PASSWORD ] ; then
     ssh-copy-id -o StrictHostKeyChecking=no $NODE
   else
@@ -77,6 +87,9 @@ function setup-ssh()
   fi
 }
 
+setup-ssh
+
+# install packages Docker and  bridge-utils
 function install-prerequisites()
 {
   ssh $NODE "sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D"
@@ -84,9 +97,11 @@ function install-prerequisites()
   ssh $NODE "sudo apt-get update"
   ssh $NODE "DEBIAN_FRONTEND=noninteractive sudo apt-get install docker-engine -y" 
   ssh $NODE "service docker start"
+
   ssh $NODE "sudo apt-get install bridge-utils -y"
 }
 
+# Check docker and bridge-utils are installed
 function check-prerequisites()
 {
   ssh $NODE "sudo docker ps" &> /dev/null
@@ -101,16 +116,8 @@ function check-prerequisites()
 }
 
 
-check-ssh-port
-if [ $? -ne 0 ] ; then
-    msg=`build-status "error" "SSH port not opened. Timed out."`
-    MESSAGE "E" "$msg"
-    exit 0
-fi
-
-setup-ssh
-
-output=`check-prerequisites`
+# Check pre-requisites, install if not
+$(check-prerequisites)
 if [ $? -ne 0 ] ; then
   install-prerequisites
 fi

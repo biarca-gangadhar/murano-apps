@@ -1,15 +1,20 @@
 #!/bin/bash
+# This scripts installs/copy the neccessary packages and files to Kubernetes Nodes scaling
+
 
 log_file=/var/log/gce.log
-echo "GCE Auto Scale setup starting" >> $log_file
+echo "Setting GCP Common files started" >> $log_file
 
-sudo apt-get install jq -y &> /dev/null
-sudo apt-get install sshpass -y &> /dev/null
+apt-get update &>> $log_file
+apt-get install jq -y &>> $log_file
+apt-get install sshpass -y &>> $log_file
+
 mkdir -p /opt/bin/autoscale
 mkdir -p /opt/bin/autoscale/kube
 mkdir -p /opt/bin/autoscale/kube/initd
 mkdir -p /etc/autoscale
 
+# Transfer the files which adds node into cluster
 cp auto_scale/addGceNode.sh /opt/bin/autoscale/addGceNode.sh
 cp auto_scale/deleteGceNode.sh /opt/bin/autoscale/deleteGceNode.sh
 cp auto_scale/gceIpManager.sh /opt/bin/autoscale/gceIpManager.sh
@@ -23,5 +28,5 @@ if [ ! -f  ~/.ssh/id_rsa ] ; then
     ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
 fi
 
+echo "Setting GCP Common files Completed" >> $log_file
 exit 0
-

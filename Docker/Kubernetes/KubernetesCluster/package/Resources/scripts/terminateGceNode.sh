@@ -1,12 +1,11 @@
 #!/bin/bash
-# This script adds GCE node to Murano k8s cluster.
+# This script delete GCE instance from Google cloud
 
 set -e
 
 LOG_FILE="/var/log/gce.log"
 SCRIPTS_PATH="/opt/bin/autoscale/gce"
-conf_file="/etc/autoscale/autoscale.conf"
-ZONE="us-central1-f"
+ZONE="us-central1-f"  # default zone
 ACTION="delete"
 NAME=$1
 

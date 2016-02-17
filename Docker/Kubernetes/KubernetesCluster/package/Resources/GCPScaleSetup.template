@@ -12,10 +12,7 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Add GCE Public Node
-
-# Parameters:
-#   gcpAuthCode: $gcpAuthCode
+Name: Transfer file to add/delete GCE instance
 
 Body: |
   return setup().stdout

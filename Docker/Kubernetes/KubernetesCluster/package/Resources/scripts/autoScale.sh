@@ -1,4 +1,6 @@
 #!/bin/bash
+# This script installs/copies the required packages/files to run auto-scale service
+# And run the autoscale service
 
 #
 # command line arguments
@@ -17,12 +19,16 @@
 # $11 - total no of nodes
 
 log_file=/var/log/autoscale.log
-echo "Setting up Auto Scale setup" >> $log_file
 conf_file=auto_scale/autoscale.conf
+
+echo "Setting up Auto Scale setup" >> $log_file
+echo "Received Args : $*" >> $log_file
 
 mkdir -p /etc/autoscale
 mkdir -p /opt/bin/autoscale
 
+# Below conf requires for autoscale service
+# This conf file values are given by user in UI at the time deployment
 sed -i "/^\[DEFAULT]/ a\max_vms_limit=${1}" $conf_file
 sed -i "/^\[DEFAULT]/ a\min_vms_limit=${2}" $conf_file
 sed -i "/^\[DEFAULT]/ a\MAX_CPU_LIMIT=${3}" $conf_file
@@ -34,19 +40,23 @@ sed -i "/^\[DEFAULT]/ a\tenant=${8}" $conf_file
 sed -i "/^\[DEFAULT]/ a\username=${9}" $conf_file
 sed -i "/^\[DEFAULT]/ a\OPENSTACK_IP=${7}" $conf_file
 sed -i "/^\[GCE]/ a\gcp_minion_nodes=${11}" $conf_file
+
 cp auto_scale/autoscale.conf /etc/autoscale/
-export DEBIAN_FRONTEND=noninteractive
 cp auto_scale/metrics.py /opt/bin/autoscale/
 cp auto_scale/scale.sh /opt/bin/autoscale/
-chmod +x /opt/bin/autoscale/metrics.py /opt/bin/autoscale/scale.sh
 cp auto_scale/autoscale /etc/init.d/
-sudo apt-get install python3-numpy -y >> $log_file
-sudo apt-get install jq -y >> $log_file
-sudo apt-get install sshpass -y >> $log_file
+chmod +x /opt/bin/autoscale/metrics.py /opt/bin/autoscale/scale.sh /etc/init.d/autoscale
+
+
+apt-get update &>> $log_file
+apt-get install python3-numpy -y &>> $log_file
+apt-get install jq -y &>> $log_file
+apt-get install sshpass -y &>> $log_file
+
 echo "Starting autoscale service" >> $log_file
 service autoscale start
+
 if [ ! -f  ~/.ssh/id_rsa ] ; then
             ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
 fi
 exit 0
-

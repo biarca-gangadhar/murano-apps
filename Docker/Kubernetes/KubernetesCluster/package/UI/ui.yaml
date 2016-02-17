@@ -24,23 +24,6 @@ Templates:
       assignFloatingIp: $.appConfiguration.assignFloatingIP
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
-    maxMinionCount: $.appConfiguration.maxMinionCount
-    minionCount: $.appConfiguration.minionCount
-    maxCPUusage: $.scaleConfiguration.maxCPUusage
-    minCPUusage: $.scaleConfiguration.minCPUusage
-    openstackIP: $.scaleConfiguration.openstackIP
-    tenantName: $.scaleConfiguration.tenantName
-    userName: $.scaleConfiguration.userName
-    userPassword: $.scaleConfiguration.userPassword
-    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
-    existingNodesArray: $.hybridCloudConfiguration.existingNodes.split(",")
-    gcpUserName: $.hybridCloudConfiguration.gcpUserName
-    gcpPassword: $.hybridCloudConfiguration.gcpPassword
-    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
-    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
-    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
-    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
-    autoScaling: $.scaleConfiguration.autoScaling
 
   minionNode:
     ?:
@@ -70,21 +53,47 @@ Templates:
       keyname: $.instanceConfiguration.keyPair
       availabilityZone: $.instanceConfiguration.availabilityZone
 
+  hybridCloudAutoScale:
+    ?:
+      type: io.murano.apps.docker.kubernetes.HybridCloudAutoScale
+    autoScaling: $.scaleConfiguration.autoScaling
+    maxMinionCount: $.appConfiguration.maxMinionCount
+    minionCount: $.appConfiguration.minionCount
+    maxCPUusage: $.scaleConfiguration.maxCPUusage
+    minCPUusage: $.scaleConfiguration.minCPUusage
+    openstackIP: $.scaleConfiguration.openstackIP
+    tenantName: $.scaleConfiguration.tenantName
+    userName: $.scaleConfiguration.userName
+    userPassword: $.scaleConfiguration.userPassword
+    enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+    existingNodes: $.hybridCloudConfiguration.existingNodes
+    gcpUserName: $.hybridCloudConfiguration.gcpUserName
+    gcpPassword: $.hybridCloudConfiguration.gcpPassword
+    enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+    openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
+    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+    gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
+
 Application:
   ?:
     type: io.murano.apps.docker.kubernetes.KubernetesCluster
   name: $.appConfiguration.name
   masterNode: $masterNode
+  hybridCloudAutoScale: $hybridCloudAutoScale
   minionNodes: repeat($minionNode, $.appConfiguration.maxMinionCount)
   nodeCount: $.appConfiguration.minionCount
   gatewayCount: $.appConfiguration.gatewayCount
   gatewayNodes: repeat($gatewayNode, $.appConfiguration.maxGatewayCount)
   dockerRegistry: $.appConfiguration.dockerRegistry
+  dockerMirror: $.appConfiguration.dockerMirror
+  gcloudKey: $.appConfiguration.gcloudKey
   autoScaling: $.scaleConfiguration.autoScaling
-  existingNodesArray: $.hybridCloudConfiguration.existingNodes.split(",")
-  gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
-  enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
   enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
+  existingNodes: $.hybridCloudConfiguration.existingNodes
+  gcpUserName: $.hybridCloudConfiguration.gcpUserName
+  gcpPassword: $.hybridCloudConfiguration.gcpPassword
+  enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
+  gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
 
 
 Forms:
@@ -104,20 +113,20 @@ Forms:
             underline are allowed
         - name: minionCount
           type: integer
-          label: Initial/current number of minions
+          label: Initial/current number of Kubernetes nodes
           initial: 2
           minValue: 1
           required: true
           description: >-
-            Select number of minions
+            Select number of Kubernetes nodes
         - name: maxMinionCount
           type: integer
-          label: Maximum number of minions
+          label: Maximum number of Kubernetes nodes
           initial: 3
           required: true
           minValue: 1
           description: >-
-            Select maximum number of minions
+            Select maximum number of Kubernetes nodes
         - name: assignFloatingIP
           type: boolean
           initial: true
@@ -149,7 +158,7 @@ Forms:
           type: integer
           label: Initial/current number of gateway nodes
           initial: 1
-          minValue: 0
+          minValue: 1
           required: true
           description: >-
             External traffic will be routed through gateway nodes.
@@ -186,122 +195,26 @@ Forms:
           type: string
           label: Custom Docker registry URL
           description: >-
-            URL of docker repository mirror to use.
+            Host IP or domain name of custom Docker registry to use.
             Leave empty to use Docker default.
           required: false
-
-  - scaleConfiguration:
-      fields:
-        - name: autoScaling
-          type: boolean
-          initial: true
-          required: false
-          label: Enable Auto Scaling
-          description: >-
-            Check to Enable Auto Scaling of Minion Nodes.
-        - name: maxCPUusage
-          type: integer
-          label: Max %Cpu(s)
-          initial: 60
-          minValue: 0
-          required: false
-          description: >-
-            Max CPU usage number for Auto Scaling
-        - name: minCPUusage
-          type: integer
-          label: Min %Cpu(s)
-          initial: 20
-          minValue: 0
-          required: false
-          description: >-
-            Min CPU usage number for Auto Scaling
-        - name: openstackIP
+        - name: dockerMirror
           type: string
-          required: false
-          label: OpenStack IP
+          label: Docker registry mirror URL
           description: >-
-            Provide OpenStack Endpoint IP
-        - name: tenantName
-          type: string
+            URL of Docker registry mirror to use.
+            Leave empty to not use one.
           required: false
-          initial: admin
-          label: Tenant Name
+        - name: gcloudKey
+          type: string
+          label: Google registry key
+          regexpValidator: '^{(\s*"(\\(["\\\/bfnrt]|u[a-fA-F0-9]{4})|[^"\\\0-\x1F\x7F]+)*"\s*:\s*"(\\(["\\\/bfnrt]|u[a-fA-F0-9]{4})|[^"\\\0-\x1F\x7F]+)*"\s*(,|\s*}$))*$'
+          errorMessages:
+            invalid: Text should be a valid JSON.
           description: >-
-            Provide tenant name.
-        - name: userName
-          type: string
+            Contents of JSON key file.
+            Used to authenticate to the Google Container Registry
           required: false
-          initial: admin
-          label: User Name
-          description: >-
-            Provide user name.
-        - name: userPassword
-          type: string
-          required: false
-          label: Password
-          description: >-
-            Provide password for user.
-
-  - hybridCloudConfiguration:
-      fields:
-        - name: title1
-          type: string
-          required: false
-          hidden: true
-          description: Configure below parameters to scale existing nodes that are already provisioned by OpenVPN
-        - name: enableExistingNodes
-          type: boolean
-          initial: false
-          required: false
-          label: Use existing openvpn Node(s)
-          description: >-
-            Enable if openVPN nodes already exist in  the network
-        - name: existingNodes
-          type: string
-          required: false
-          label: Nodes
-          description: >-
-            provide comma separated node IP details
-        - name: gcpUserName
-          type: string
-          required: false
-          label: Username
-          description: >-
-            Provide privileged username
-        - name: gcpPassword
-          type: string
-          required: false
-          label: Password
-          description: >-
-            Provide privileged user password
-
-        - name: title2
-          type: string
-          required: false
-          hidden: true
-          description: Configure below parameters for Kubernetes elastic scaling with GCE instances auto creation/deletion
-        - name: enableAutoCreationGCE
-          type: boolean
-          initial: true
-          label: Auto create/delete GCE instances
-          description: Enable this flag for elastic hybrid cloud (GCE) scaling
-        - name: openVPNServerIP
-          type: string
-          label: OpenVPN Server IP
-          required: false
-          description: Provide OpenVPN Server IP
-        - name: gcpMinionCount
-          type: integer
-          label: Max. GCE nodes count
-          initial: 1
-          minValue: 1
-          required: false
-          description: Provide max gce nodes to use for elastic scaling
-        - name: gcePrivateKey
-          type: text
-          label: GCE service account private key
-          required: false
-          description: Paste the content of key file(.json), downloaded at the time of service account creation
 
   - instanceConfiguration:
       fields:
@@ -334,3 +247,114 @@ Forms:
           label: Availability zone
           description: Select an availability zone where the application would be installed.
           required: false
+
+  - scaleConfiguration:
+      fields:
+        - name: autoScaling
+          type: boolean
+          initial: true
+          required: false
+          label: Enable Auto Scaling
+          description: >-
+            Check to Enable Auto Scaling of Minion Nodes.
+        - name: maxCPUusage
+          type: integer
+          label: Max %Cpu(s)
+          initial: 60
+          minValue: 0
+          required: false
+          description: >-
+            Max CPU usage number for Auto Scaling
+        - name: minCPUusage
+          type: integer
+          label: Min %Cpu(s)
+          initial: 20
+          minValue: 0
+          required: false
+          description: >-
+            Min CPU usage number for Auto Scaling
+        - name: openstackIP
+          type: string
+          required: false
+          label: Public HAProxy IP
+          description: >-
+            Provide HAProxy public IP
+        - name: tenantName
+          type: string
+          required: false
+          initial: admin
+          label: Tenant Name
+          description: >-
+            Provide tenant name.
+        - name: userName
+          type: string
+          required: false
+          initial: admin
+          label: User Name
+          description: >-
+            Provide user name.
+        - name: userPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide password for user.
+  - hybridCloudConfiguration:
+      fields:
+        - name: title1
+          type: string
+          required: false
+          hidden: true
+          description: Configure below parameters to scale existing nodes that are already provisioned by OpenVPN
+        - name: enableExistingNodes
+          type: boolean
+          initial: false
+          required: false
+          label: Use existing openvpn Node(s)
+          description: >-
+            Enable if openVPN nodes already exist in  the network
+        - name: existingNodes
+          type: string
+          required: false
+          label: Nodes
+          description: >-
+            provide comma separated node IP details
+        - name: gcpUserName
+          type: string
+          required: false
+          label: Username
+          description: >-
+            Provide privileged username
+        - name: gcpPassword
+          type: string
+          required: false
+          label: Password
+          description: >-
+            Provide privileged user password
+        - name: title2
+          type: string
+          required: false
+          hidden: true
+          description: Configure below parameters for Kubernetes elastic scaling with GCE instances auto creation/deletion
+        - name: enableAutoCreationGCE
+          type: boolean
+          initial: false
+          label: Auto create/delete GCE instances
+          description: Enable this flag for elastic hybrid cloud (GCE) scaling
+        - name: openVPNServerIP
+          type: string
+          label: OpenVPN Server IP
+          required: false
+          description: Provide OpenVPN Server IP
+        - name: gcpMinionCount
+          type: integer
+          label: Max. GCE nodes count
+          initial: 1
+          minValue: 1
+          required: false
+          description: Provide max gce nodes to use for elastic scaling
+        - name: gcePrivateKey
+          type: text
+          label: GCE service account private key
+          required: false
+          description: Paste the content of key file(.json), downloaded at the time of service account creation

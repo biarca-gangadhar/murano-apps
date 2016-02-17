@@ -4,10 +4,9 @@
 set -e
 
 GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
-conf_file="/etc/autoscale/autoscale.conf"
 LOG_FILE="/var/log/gce.log"
 
-if [ $2 == "app" ] ; then
+if [ $2 == "new" ] ; then
     echo "Adding New GCE Node $1" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
@@ -15,13 +14,13 @@ if [ $2 == "app" ] ; then
     NODE_PASSWD="None"
     MASTER_IP=$3
     INST_NAME=$4
-elif [ $2 == "man" ] ; then
+elif [ $2 == "existing" ] ; then
     echo "Adding old node to clust" >> $LOG_FILE
     NODE_IP=$1
     TYPE=$2
-    NODE_USER=$3
-    NODE_PASSWD=$4
-    MASTER_IP=$5
+    MASTER_IP=$3
+    NODE_USER=$4
+    NODE_PASSWD=$5
 else
     echo "TYPE error"
     exit 1
@@ -56,11 +55,12 @@ PORT_K8S_MASTER=8080
 BIN_ETCDCTL=/opt/bin/etcdctl
 BIN_KUBECTL=/opt/bin/kubectl
 
+# Check it's added by autoscale service or UI
 FILE_AUTO_FLAG="/tmp/autoscale"
 if [ ! -f $FILE_AUTO_FLAG ] ; then
     AUTO_FLAG=0
 else
-    AUTO_FLAG=`cat $FILE_AUTO_FLAG`
+    AUTO_FLAG=$(cat $FILE_AUTO_FLAG)
 fi
 
 
@@ -115,14 +115,14 @@ function create-etcd-opts() {
   --initial-cluster $ETCD_INITIAL_CLUSTER \
   --initial-cluster-state $ETCD_INITIAL_CLUSTER_STATE"
 
-  ETCD_OPTS=`echo $OPTS | tr -s " "`  # remove extra spaces
+  ETCD_OPTS=$(echo $OPTS | tr -s " ")  # remove extra spaces
 }
 
 function create-kube-proxy-opts() {
     OPTS="--logtostderr=false \
           --master=$MASTER_URL \
           --log_dir=$LOG_DIR"
-    KUBE_PROXY_OPTS=`echo $OPTS | tr -s " "`  # remove extra spaces
+    KUBE_PROXY_OPTS=$(echo $OPTS | tr -s " ")  # remove extra spaces
 }
 
 function create-kubelet-opts()
@@ -133,16 +133,16 @@ function create-kubelet-opts()
           --api_servers=$MASTER_IP:$PORT_K8S_MASTER \
           --log_dir=/var/log/kubernetes \
           --logtostderr=false"
-    KUBELET_OPTS=`echo $OPTS | tr -s " "`  # remove extra spaces
+    KUBELET_OPTS=$(echo $OPTS | tr -s " ")  # remove extra spaces
 }
 
 function create-flanneld-opts()
 {
     OPTS="--iface=$NODE_IP"
-    FLANNEL_OPTS=`echo $OPTS | tr -s " "`  # remove extra spaces
+    FLANNEL_OPTS=$(echo $OPTS | tr -s " ")  # remove extra spaces
 
     # Store the flannel network for reconfiguring
-    flannel_net=`/opt/bin/etcdctl get /coreos.com/network/config | jq --raw-output .Network`
+    flannel_net=$(/opt/bin/etcdctl get /coreos.com/network/config | jq --raw-output .Network)
     echo FLANNEL_NET=\"$flannel_net\" > /opt/bin/autoscale/kube/config-default.sh
 }
 
@@ -203,6 +203,7 @@ sleep 3
 
 $BIN_KUBECTL label nodes $NODE_IP type=GCE || true
 
+# If this operation runs from autoscale service, add label
 if [ $AUTO_FLAG == "1" ] ; then
     $BIN_KUBECTL label nodes $NODE_IP creationType="Auto" || true
 fi

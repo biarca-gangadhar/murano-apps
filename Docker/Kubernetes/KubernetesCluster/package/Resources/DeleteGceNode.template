@@ -12,7 +12,7 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Delete GCE Public Node
+Name: Deletes GCE nodes from K8S cluster
 
 Parameters:
   type: $type

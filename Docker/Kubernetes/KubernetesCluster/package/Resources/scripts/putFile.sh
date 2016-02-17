@@ -1,3 +1,4 @@
+#!/bin/bash
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may
 #  not use this file except in compliance with the License. You may obtain
 #  a copy of the License at
@@ -10,23 +11,6 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-FormatVersion: 2.0.0
-Version: 1.0.0
-Name: Add GCE Public Node
-
-Parameters:
-  ip: $ip
-  type: $type
-  masterIp: $masterIp
-  name: $name
-Body: |
-  return setup('{0} {1} {2} {3}'.format(args.ip, args.type, args.masterIp, args.name)).stdout
-
-Scripts:
-  setup:
-    Type: Application
-    Version: 1.0.0
-    EntryPoint: addGceNode.sh
-    Options:
-      captureStdout: true
-      captureStderr: true
+TARGET_PATH=$1
+BASE64TEXT=$2
+echo $BASE64TEXT | base64 -d > $TARGET_PATH

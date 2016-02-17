@@ -4,7 +4,6 @@
 set -e
 
 GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
-conf_file="/etc/autoscale/autoscale.conf"
 TEMP_FILE="/tmp/etcd.list"
 
 NODE_USER=$2
@@ -14,7 +13,7 @@ NODE="$NODE_USER@$NODE_IP"
 ETCD_BIN="/opt/bin/etcdctl"
 KUBECTL_BIN="/opt/bin/kubectl"
 
-if [ $NODE_IP == "0" ] ; then
+if [ $NODE_IP == "0" ] || [ -z $NODE_IP ] ; then
     echo '{ "error": "No GCE nodes to delete" }'
     exit 0
 fi
@@ -23,7 +22,7 @@ fi
 if [ ! -f $FILE_AUTO_FLAG ] ; then
     AUTO_FLAG=0
 else
-    AUTO_FLAG=`cat $FILE_AUTO_FLAG`
+    AUTO_FLAG=$(cat $FILE_AUTO_FLAG)
 fi
 
 # files to remove from node
@@ -41,10 +40,9 @@ function remove-etcd() {
     chmod 0666 $TEMP_FILE
     while read -r line
     do
-        name=$line
         if [[ $line == *"$NODE_IP:"* ]]
         then
-            id=`echo $line | cut -d ":"  -f 1`
+            id=$(echo $line | cut -d ":"  -f 1)
             echo "Deleting ID:$id from Cluster"
             $ETCD_BIN member remove $id
             break

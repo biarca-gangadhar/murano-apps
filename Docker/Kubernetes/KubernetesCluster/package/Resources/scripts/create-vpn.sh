@@ -1,4 +1,5 @@
 #!/bin/bash
+# Creates VPN connection between Murano instanecs and GCE instances
 
 # $1 - GCE external IP
 # $2 - openVPN Server IP
@@ -6,16 +7,20 @@
 LOG_FILE="/var/log/gce.log"
 
 if [ -z $1 ] || [ -z $2 ] ; then
-    echo "$0: GCE external IP error"
+    echo "$0: Requires GCE external IP and  OpenVPN Server IP as inputs"
     exit 1
 fi
 
-echo "Got VPNIP: $2 and GCE IP: $1" >> $LOG_FILE
+
+echo "Creating VPN connection. VPN Server IP: $2 and GCE IP: $1" >> $LOG_FILE
 
 GCE_EXTERNAL_IP=$1
 OPENVPN_SERVER_IP=$2
 
-ssh-keygen -f "/root/.ssh/known_hosts" -R $GCE_EXTERNAL_IP &> $LOG_FILE
+# Remove old keys if exists, from known_hosts
+ssh-keygen -f "/root/.ssh/known_hosts" -R $GCE_EXTERNAL_IP &>> $LOG_FILE
+
+# Instace just started. Needs time to start ssh service. So try 5 times
 count=0
 while true; do
   echo "Doing ssh-copy-id" >> $LOG_FILE
@@ -23,7 +28,7 @@ while true; do
   if [ $? != 0 ] && [ $count -lt 5 ]; then
       echo "$count:SSH-copy-id failed. Rechecking" >> $LOG_FILE
       sleep 5
-      count=$[$count+1]
+      count=$((count+1))
       continue
   elif [ $count -eq 5 ]; then
       echo "SSH-copy-id timed out.." >> $LOG_FILE
@@ -35,16 +40,20 @@ while true; do
   fi
 done
 
-ssh_id=`curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/id_rsa`
+# Request the id_rsa.pub file of OPenVPN
+ssh_id=$(curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/id_rsa)
 echo "id_rsa of '$OPENVPN_SERVER_IP': $ssh_id"  >> $LOG_FILE
 
+# Only this instance have SSH access. Add openVPN id_rsa to auth keys of GCE instance.
+# So OpenVPN server will also get SSH access
 ssh root@$GCE_EXTERNAL_IP "echo $ssh_id >> /root/.ssh/authorized_keys"
 if [ $? != "0" ] ; then
-   echo "Ssh not ssuccessfull" >> $LOG_FILE
+   echo "OpenVPN ssh not ssuccessfull" >> $LOG_FILE
 fi
-echo "SSH done" >> $LOG_FILE
+echo "Added OpenVPN Server to authorized keys." >> $LOG_FILE
 
-result=`curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/create/$GCE_EXTERNAL_IP`
+# Request OpenVPN to create tap interface
+result=$(curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/create/$GCE_EXTERNAL_IP)
 if [ $result != "OK" ] ; then
     echo "VPN creation error"
     exit 1
@@ -52,6 +61,7 @@ fi
 
 echo "VPN Creation done" >> $LOG_FILE
 
+# It takes time to get tap interface in Instance. Try 5 times
 count=0
 while true; do
     echo "Waiting for TAP IP" >> $LOG_FILE
@@ -64,7 +74,7 @@ while true; do
          echo "Tap timeout"
          exit 1
     fi
-    count=$[$count+1]
+    count=$((count+1))
 done
 echo "Tap IP: $tapIP" >> $LOG_FILE
 echo $tapIP

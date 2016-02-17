@@ -12,21 +12,21 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Add GCE Public Node
+Name: $planName
 
 Parameters:
-  ip: $ip
-  type: $type
-  masterIp: $masterIp
-  name: $name
+  path: $path
+  fileContent: $fileContent
+
 Body: |
-  return setup('{0} {1} {2} {3}'.format(args.ip, args.type, args.masterIp, args.name)).stdout
+  return putFile("'{0}' '{1}'".format(args.path, args.fileContent)).exitCode == 0
 
 Scripts:
-  setup:
+  putFile:
     Type: Application
     Version: 1.0.0
-    EntryPoint: addGceNode.sh
+    EntryPoint: putFile.sh
     Options:
-      captureStdout: true
+      captureStdout: false
       captureStderr: true
+      verifyExitcode: $verifyExitcode
