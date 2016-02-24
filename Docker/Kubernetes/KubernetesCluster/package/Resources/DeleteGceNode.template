@@ -15,11 +15,11 @@ Version: 1.0.0
 Name: Deletes GCE nodes from K8S cluster
 
 Parameters:
-  type: $type
+  ip: $ip
   username: $username
 
 Body: |
-  return setup('{0} {1}'.format(args.type, args.username)).stdout
+  return setup('{0} {1}'.format(args.ip, args.username)).stdout
 
 Scripts:
   setup:

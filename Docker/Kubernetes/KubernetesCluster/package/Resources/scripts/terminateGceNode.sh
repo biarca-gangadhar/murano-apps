@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script delete GCE instance from Google cloud
+# This script deletes GCE instance from cloud
 
 set -e
 

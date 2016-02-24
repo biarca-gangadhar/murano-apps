@@ -88,18 +88,18 @@ scaleGceDown=$(echo $services | grep -o '[a-z0-9-]*_deleteGceNode')
 
 if [ -z $gcp ] && [ $action == "up" ] ; then
     echo "Action ID: $scaleUp"
-    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleUp)
+    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleUp)
 elif [ -z $gcp ] && [ $action == "down" ] ; then
     echo "Action ID: $scaleDown"
-    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleDown)
+    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleDown)
 elif [ $gcp == "gce" ] && [ $action == "up" ]; then
     echo 1 > $AUTO_FLAG_FILE
     echo "Action ID: $scaleGceUp"
-    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleGceUp)
+    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleGceUp)
 elif [ $gcp == "gce" ] && [ $action == "down" ]; then
     echo 1 > $AUTO_FLAG_FILE
     echo "Action ID: $scaleGceDown"
-    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "{}" $MURANO_URL/v1/environments/$env_id/actions/$scaleGceDown)
+    task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleGceDown)
 fi
 
 task_id=$(echo $task | jq --raw-output ".task_id" 2> /dev/null)

@@ -1,6 +1,4 @@
 #!/bin/bash
-# This script installs/copies the required packages/files to run auto-scale service
-# And run the autoscale service
 
 #
 # command line arguments
@@ -28,7 +26,6 @@ mkdir -p /etc/autoscale
 mkdir -p /opt/bin/autoscale
 
 # Below conf requires for autoscale service
-# This conf file values are given by user in UI at the time deployment
 sed -i "/^\[DEFAULT]/ a\max_vms_limit=${1}" $conf_file
 sed -i "/^\[DEFAULT]/ a\min_vms_limit=${2}" $conf_file
 sed -i "/^\[DEFAULT]/ a\MAX_CPU_LIMIT=${3}" $conf_file

@@ -5,7 +5,6 @@ import time
 import numpy
 import os
 import configparser
-import subprocess
 from datetime import datetime
 
 data_file = "/etc/autoscale/autoscale.conf"
@@ -24,6 +23,8 @@ MAX_HYSTERESIS_COUNT = 6
 # sample_type could be "scaleUp" or "scaleDown"
 CUR_HYSTERESIS = {"count": 0, "sample_type": None}
 UPDATED_NODES_LIST = []
+GCE_IN_USE = []
+AUTOSCALE_NODES = []
 K8S_MASTER = ''
 K8S_PORT = '8080'
 CADVISOR_PORT = '4194'
@@ -52,7 +53,10 @@ def get_cpu_usage(node_ip):
     api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/machine"
     request = urllib.request.Request(api)
     response = urllib.request.urlopen(request)
-    decode_response = (response.read().decode('utf-8'))
+    try:
+        decode_response = (response.read().decode('utf-8'))
+    except Exception:
+        return False
     string = str(decode_response)
     machine_info = json.loads(string)
     num_cores = machine_info["num_cores"]
@@ -125,24 +129,31 @@ def get_total_nodes():
         for i in range(0, number_minions):
             UPDATED_NODES_LIST.append(
                 NODES_OBJ["items"][i]["metadata"]["name"])
+        get_gcp_nodes()
         return number_minions
     except Exception:
         return -1
 
 
+# Update nodes list
+def get_gcp_nodes():
+    global NODES_OBJ, AUTOSCALE_NODES, GCE_IN_USE
+    GCE_IN_USE = []
+    AUTOSCALE_NODES = []
+    for node in NODES_OBJ["items"]:
+        labels = node["metadata"]["labels"]
+        for label in labels:
+            if "type" == label:
+                if labels["type"].upper() == "GCE":
+                    GCE_IN_USE.append(node["metadata"]["name"])
+            if "creationType" == label:
+                if labels["creationType"].lower() == "auto":
+                    AUTOSCALE_NODES.append(node["metadata"]["name"])
+
+
 # Check no.of openstack nodes available
 def get_private_nodes(total):
-    return total-get_gcp_nodes()
-
-
-# Check if any nodes available to add
-def get_gcp_nodes():
-    if MAX_GCE_VMS_LIMIT == 0:
-        return 0
-    gceIpManager = "/opt/bin/autoscale/gceIpManager.sh"
-    cmd = "sudo bash "+gceIpManager+" busy_count"
-    output = subprocess.check_output(cmd, shell=True)
-    return int(output)
+    return total-len(GCE_IN_USE)
 
 
 def print_limits():
@@ -192,11 +203,10 @@ def update_removed_nodes():
 
 def scaleUpNodes():
     if (private_nodes < MAX_VMS_LIMIT):
-        # Private Scale up
         print("Scaling up private")
         os.system(scale_script + ' up')
         return True
-    elif (get_gcp_nodes() < MAX_GCE_VMS_LIMIT):
+    elif (len(GCE_IN_USE) < MAX_GCE_VMS_LIMIT):
         # GCE Scale UP
         print("private nodes limit has been reached")
         print("Scaling up GCE")
@@ -209,13 +219,9 @@ def scaleUpNodes():
 
 
 def scaleDownNodes():
-    if (get_gcp_nodes() > MIN_GCE_VMS_LIMIT):
+    if (len(GCE_IN_USE) > MIN_GCE_VMS_LIMIT):
         # GCE Scale Down
-        gceIpManager = "/opt/bin/autoscale/gceIpManager.sh"
-        cmd = "sudo bash "+gceIpManager+" auto_busy_node"
-        output = subprocess.check_output(cmd, shell=True)
-        output = output.decode("utf-8")[:-1]
-        if (output != "0"):
+        if (len(AUTOSCALE_NODES) > 0):
             print("GCE Scale Down")
             os.system(scale_script + ' down gce')
             return True
@@ -289,8 +295,8 @@ while 1:
         CUR_HYSTERESIS["count"] = 0
         time.sleep(POLLING_CLUSTER_PERIOD)
         continue
-    elif (any(v['cpu'] < MIN_CPU_LIMIT for v in ALL_NODES.values())
-          and any(v['cpu'] > MAX_CPU_LIMIT for v in ALL_NODES.values())):
+    elif (any(v['cpu'] < MIN_CPU_LIMIT for v in ALL_NODES.values()) and
+          any(v['cpu'] > MAX_CPU_LIMIT for v in ALL_NODES.values())):
             # Some nodes are above max and below min threshold
             CUR_HYSTERESIS["count"] = 0
             time.sleep(POLLING_CLUSTER_PERIOD)

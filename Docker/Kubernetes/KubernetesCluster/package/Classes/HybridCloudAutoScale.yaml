@@ -15,6 +15,7 @@ Namespaces:
   std: io.murano
   res: io.murano.resources
   sys: io.murano.system
+  conf: io.murano.configuration
 
 Name: HybridCloudAutoScale
 
@@ -42,7 +43,7 @@ Properties:
     Default: false
   existingNodes:
     Contract: $.string()
-  gcpUserName:
+  gcpUsername:
     Contract: $.string()
   gcpPassword:
     Contract: $.string()
@@ -59,44 +60,27 @@ Properties:
   autoScaling:
     Contract: $.bool()
     Default: false
-  curExistingNodesCount:
-    Contract: $.int()
-    Default: 0
+  GCPArray:
+    Contract:
+      - name: $.string()
+        ip: $.string()
+        externalIp: $.string()
+        autoscale: $.string()
     Usage: InOut
+  existingNodesList:
+    Contract:
+      - ip: $.string()
+        autoscale: $.string()
+    Usage: InOut
+  availableNodesList:
+    Contract: [$.string()]
+    Usage: InOut
+
 Methods:
   initialize:
     Body:
       - $._environment: $.find(std:Environment).require()
       - $._cluster: $.find(KubernetesCluster).require()
-
-  putFile:
-    Arguments:
-      - fileContent:
-          Contract: $.string().notNull()
-      - path:
-          Contract: $.string().notNull()
-      - helpText:
-          Contract: $.string()
-          Default: null
-      - ignoreErrors:
-          Contract: $.bool().notNull()
-          Default: false
-
-    Body:
-      - $data: base64encode($fileContent)
-      - $resources: new(sys:Resources)
-      - If: $helpText != null
-        Then:
-          - $planName: $helpText
-        Else:
-          - $planName: format('Put to {0}', $path)
-      - $template: $resources.yaml('PutFile.template').bind(dict(
-            path => $path,
-            fileContent => $data,
-            planName => $planName,
-            verifyExitcode => not $ignoreErrors
-          ))
-      - Return: $._cluster.masterNode.instance.agent.call($template, $resources)
 
   setupGCPScale:
     Body:
@@ -104,22 +88,26 @@ Methods:
         Then:
           - If: $.enableExistingNodes = true
             Then:
-              - If: $.existingNodes = '' or $.gcpUserName = '' or $.gcpPassword = ''
+              - If: $.existingNodes = '' or $.gcpUsername = '' or $.gcpPassword = ''
                 Then:
                   - Throw: EmptyValuesError
                     Message: 'You should fill Nodes, Username and Password to add existing OpenVPN nodes to cluster'
           - If: $.enableAutoCreationGCE = true
             Then:
               - If: $.openVPNServerIP = '' or $.gcePrivateKey = ''
-                Then: 
+                Then:
                   - Throw: EmptyValuesError
-                    Message: 'You should fill Open VPN Server IP and GCE service account private key to enable Auto create/delete GCE instances' 
+                    Message: 'Missing Open VPN Server IP or GCE service account private key to enable Auto create/delete GCE instances'
               - $resources: new(sys:Resources)
               - $template: $resources.yaml('GCPScaleSetup.template')
               - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
-              - $.putFile($.gcePrivateKey, '/etc/autoscale/MuranoAppDevelopment.json')
+
+              - $linux: new(conf:Linux)
+              - $path: '/etc/autoscale/MuranoAppDevelopment.json'
+              - $linux.putFile($._cluster.masterNode.instance.agent, $.gcePrivateKey, $path)
           - If: $.enableAutoCreationGCE = true or $.enableExistingNodes = true
             Then:
+              - $.availableNodesList: $.existingNodes.split(',')
               - $._environment.reporter.report($this, 'Setting up GCE scaling')
               - $resources: new(sys:Resources)
               - $template: $resources.yaml('GCPCommonFilesSetup.template')
@@ -133,7 +121,7 @@ Methods:
           - If: $.autoScaling = true
             Then:
               - If: $.maxCPUusage = '' or $.minCPUusage = '' or $.tenantName = '' or $.userName = '' or $.userPassword = ''
-                Then: 
+                Then:
                   - $._environment.reporter.report($this, 'Autoscale not configured because empty values found')
                   - $.setAttr(autoscaleConfigured, true)
                   - Return:
@@ -167,46 +155,92 @@ Methods:
               - $._cluster.masterNode.instance.agent.call($template, $resources)
           - $.setAttr(autoscaleConfigured, true)
 
-  addGceNode:
+  addNode2Cluster:
     Arguments:
-      - ip:
-          Contract: $.string().notNull()
-      - nodeType:
+      - nodeIp:
           Contract: $.string().notNull()
       - username:
           Contract: $.string().notNull()
       - password:
+          Contract: $.string()
+          Default: ''
+    Body:
+      - $resources: new(sys:Resources)
+      - $template: $resources.yaml('AddGceNode.template').bind(dict(
+            masterIp => $._cluster.masterNode.getIp(),
+            nodeIp => $nodeIp,
+            username => $username,
+            password => $password
+          ))
+      - $msg: 'Adding node {0} {1} {2} {3} to Cluster'
+      - $._environment.reporter.report($this, $msg.format($._cluster.masterNode.getIp(), $nodeIp, $username, $password))
+      - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
+
+  deleteNodeFromCluster:
+    Arguments:
+      - nodeIp:
+          Contract: $.string().notNull()
+      - username:
           Contract: $.string().notNull()
     Body:
       - $resources: new(sys:Resources)
-      - $msg: 'Adding node {0} to Cluster'
-      - $._environment.reporter.report($this, $msg.format($ip))
-      - $template: $resources.yaml('AddGceNode.template').bind(dict(
-            ip => $ip,
-            type => $nodeType,
-            username => $.gcpUserName,
-            password => $.gcpPassword,
-            masterIp => $._cluster.masterNode.getIp()
+      - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
+            ip => $nodeIp,
+            username => $username
           ))
       - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
 
-  deleteGceNode:
+  addExistingNode:
+    Arguments:
+      - autoscale:
+          Contract: $.string().notNull()
     Body:
-      - $resources: new(sys:Resources)
-      - $.curExistingNodesCount: $.curExistingNodesCount - 1
-      - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
-            type => 'existing',
-            username => $.gcpUserName
-          )) 
-      - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
+      - If: len($.existingNodesList) < len($.existingNodes.split(','))
+        Then:
+          - $count: 0
+          - $ip: $.availableNodesList[0]
+          - $msg: 'Existing node {0} is available'
+          - $._environment.reporter.report($this, $msg.format($ip))
+          - $.addNode2Cluster($ip, $.gcpUsername, $.gcpPassword)
+          - $currentNode: dict(ip => $ip, autoscale => $autoscale)
+          - $.existingNodesList: $.existingNodesList + list($currentNode)
+          - $.availableNodesList: $.availableNodesList.delete(0)
+          - Return: 0
 
-  addNewGceNode:
+  deleteExistingNode:
+    Arguments:
+      - autoscale:
+          Contract: $.string().notNull()
     Body:
+      - $count: len($.existingNodesList)
+      - While: $count > 0
+        Do:
+          - $count: $count - 1
+          - $node: $.existingNodesList[$count]
+          - If: $node.autoscale = $autoscale
+            Then:
+              - $ip: $node.ip
+              - $.existingNodesList: $.existingNodesList.delete($count)
+              - $.availableNodesList: $.availableNodesList.append($ip)
+              - $msg: 'Deleting existing node {0} from cluster'
+              - $._environment.reporter.report($this, $msg.format($ip))
+              - $.deleteNodeFromCluster($ip, $.gcpUsername)
+              - Return:
+
+  addGceNode:
+    Arguments:
+      - autoscale:
+          Contract: $.string().notNull()
+    Body:
+      - If: len($.GCPArray) > $.gcpMinionCount or len($.GCPArray) = $.gcpMinionCount
+        Then:
+          - $._environment.reporter.report($this, 'All GCE nodes maxed')
+          - Return:
       - $resources: new(sys:Resources)
-      - $.name: format('murano-k8s-{0}', randomName()) 
+      - $.name: format('murano-k8s-{0}', randomName())
       - $msg: 'Creating a new GCE instance {0}'
       - $._environment.reporter.report($this, $msg.format($.name))
-      
+
       - $template: $resources.yaml('CreateGceNode.template').bind(dict(
             name => $.name,
             zone => 'us-central1-f'
@@ -230,42 +264,60 @@ Methods:
         - $tap_ip: $._cluster.masterNode.instance.agent.call($template, $resources, 600)
         - $msg: 'VPN connection established with IP: {0}'
         - $._environment.reporter.report($this, $msg.format($tap_ip))
-        - $._environment.reporter.report($this, 'Adding to Kubernetes Cluster')
-        - $template: $resources.yaml('AddNewGceNode.template').bind(dict(
-              ip => $tap_ip,
-              type => 'new',
-              masterIp => $._cluster.masterNode.getIp(),
-              name => $.name
-            ))
-        - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
+        - $.addNode2Cluster($tap_ip, 'root', '')
         Catch:
         - As: e
           Do:
           - $._environment.reporter.report_error($this, $e.message)
           - $msg: 'Deleting instance {0}'
           - $._environment.reporter.report($this, $msg.format($.name))
-          - $template: $resources.yaml('TerminateGceNode.template').bind(dict(
-                name => $.name,
-                zone => 'us-central1-f'
-              ))
-          - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
+          - $.terminateGoogleInstance($.name)
+          - Return:
+      - $dict: dict(name => $.name, externalIp => $gce_ip, ip => $tap_ip, autoscale => $autoscale)
+      - $.GCPArray: $.GCPArray + list($dict)
 
-  deleteNewGceNode:
+
+  deleteGceNode:
+    Arguments:
+      - autoscale:
+          Contract: $.string().notNull()
+    Body:
+      - If: len($.GCPArray) = 0
+        Then:
+          - $._environment.reporter.report($this, 'No GCE nodes to delete')
+          - Return:
+      - $instanceName: ''
+      - $ip: ''
+      - $count: len($.GCPArray)
+      - While: $count > 0
+        Do:
+          - $count: $count - 1
+          - $mydict: $.GCPArray[$count]
+          - If: $mydict.autoscale = $autoscale
+            Then:
+              - $instanceName: $mydict.name
+              - $ip: $mydict.ip
+              - $.GCPArray: $.GCPArray.delete($count)
+              - Break:
+      - If: $instanceName = '' and  $ip = ''
+        Then:
+          - Return:
+      - $msg: 'Deleting node {0} from cluster'
+      - $._environment.reporter.report($this, $msg.format($ip))
+      - $.deleteNodeFromCluster($ip, 'root')
+      - $.terminateGoogleInstance($instanceName)
+      - Return: 0
+
+  terminateGoogleInstance:
+    Arguments:
+      - instanceName:
+          Contract: $.string().notNull()
     Body:
       - $resources: new(sys:Resources)
-      - $template: $resources.yaml('DeleteGceNode.template').bind(dict(
-            type => 'new',
-            username => $.gcpUserName
-          )) 
-      - $instanceName: $._cluster.masterNode.instance.agent.call($template, $resources, 600)
-      - If: len($instanceName) > 5
-        Then:
-          - $template: $resources.yaml('TerminateGceNode.template').bind(dict(
-                name => $instanceName,
-                zone => 'us-central1-f'
-              ))
-          - $msg: 'Deleting instance {0}'
-          - $._environment.reporter.report($this, $msg.format($instanceName))
-          - $._cluster.masterNode.instance.agent.call($template, $resources, 180)
-        Else:
-          - $.curExistingNodesCount: $.curExistingNodesCount - 1
+      - $template: $resources.yaml('TerminateGceNode.template').bind(dict(
+            name => $instanceName,
+            zone => 'us-central1-f'
+          ))
+      - $msg: 'Deleting instance {0} from cloud'
+      - $._environment.reporter.report($this, $msg.format($instanceName))
+      - $._cluster.masterNode.instance.agent.call($template, $resources, 600)

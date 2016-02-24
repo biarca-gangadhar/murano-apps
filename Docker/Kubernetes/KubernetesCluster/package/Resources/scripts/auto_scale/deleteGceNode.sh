@@ -3,11 +3,10 @@
 
 set -e
 
-GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 TEMP_FILE="/tmp/etcd.list"
 
 NODE_USER=$2
-NODE_IP=$(bash $GCP_FILE remove)
+NODE_IP=$1
 NODE="$NODE_USER@$NODE_IP"
 
 ETCD_BIN="/opt/bin/etcdctl"
@@ -29,6 +28,7 @@ fi
 function clean-files() {
     ssh $NODE "sudo rm -rf /opt/bin ; rm -rf  ~/kube"
     ssh $NODE "sudo rm -f /etc/init.d/etcd /etc/init.d/kubelet /etc/init.d/kube-proxy /etc/init.d/flanneld"
+    ssh $NODE "sudo rm -f /etc/init/etcd.conf /etc/init/kubelet.conf /etc/init/kube-proxy.conf /etc/init/flanneld.conf"
     ssh $NODE "sudo rm -rf /var/lib/etcd"
     ssh $NODE "sudo rm -f /etc/default/etcd /etc/default/kubelet /etc/default/kube-proxy /etc/default/flanneld"
 
@@ -71,4 +71,4 @@ stop-services
 clean-files
 
 # To settle down the cluster noise
-sleep 3
+sleep 1

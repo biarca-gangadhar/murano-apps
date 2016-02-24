@@ -26,12 +26,15 @@ Scripts:
       - auto_scale/autoscale.conf
       - auto_scale/addGceNode.sh
       - auto_scale/deleteGceNode.sh
-      - auto_scale/gceIpManager.sh
       - auto_scale/kube/reconfDocker.sh
-      - auto_scale/kube/initd/etcd
-      - auto_scale/kube/initd/flanneld
-      - auto_scale/kube/initd/kubelet
-      - auto_scale/kube/initd/kube-proxy
+      - init_conf/etcd.conf
+      - init_conf/kubelet.conf
+      - init_conf/kube-proxy.conf
+      - init_conf/flanneld.conf
+      - initd_scripts/etcd
+      - initd_scripts/kubelet
+      - initd_scripts/kube-proxy
+      - initd_scripts/flanneld
 
     Options:
       captureStdout: true

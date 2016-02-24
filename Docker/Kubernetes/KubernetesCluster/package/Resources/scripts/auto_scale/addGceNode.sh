@@ -3,37 +3,20 @@
 
 set -e
 
-GCP_FILE="/opt/bin/autoscale/gceIpManager.sh"
 LOG_FILE="/var/log/gce.log"
 
-if [ $2 == "new" ] ; then
-    echo "Adding New GCE Node $1" >> $LOG_FILE
-    NODE_IP=$1
-    TYPE=$2
-    NODE_USER="root"
-    NODE_PASSWD="None"
-    MASTER_IP=$3
-    INST_NAME=$4
-elif [ $2 == "existing" ] ; then
-    echo "Adding old node to clust" >> $LOG_FILE
-    NODE_IP=$1
-    TYPE=$2
-    MASTER_IP=$3
-    NODE_USER=$4
-    NODE_PASSWD=$5
-else
-    echo "TYPE error"
+MASTER_IP=$1
+NODE_IP=$2
+NODE_USER=$3
+NODE_PASSWD=$4
+
+if [ -z $NODE_USER ] ; then
+    echo '{ "error": "Username not found"}'
     exit 1
 fi
 
-
-if [ -z $NODE_USER ] || [ -z $NODE_PASSWD ] ; then
-    echo '{ "error": "GCE nodes not configured"}'
-    exit 1
-fi
-
-if [ $NODE_IP == "0" ] ; then
-    echo '{ "error": "No GCE nodes available"}'
+if [ -z $NODE_IP ] ; then
+    echo '{ "error": "No IP find to delete"}'
     exit 0
 fi
 
@@ -71,7 +54,7 @@ function ssh-setup()
        ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
    fi
    ssh-keyscan $NODE_IP >> ~/.ssh/known_hosts
-   if [ $NODE_PASSWD != "None" ] ; then
+   if [ $NODE_PASSWD ] ; then
        sshpass -p $NODE_PASSWD ssh-copy-id $NODE
    fi
 }
@@ -155,6 +138,7 @@ function transfer-files() {
     scp -r /opt/bin/autoscale/kube/* $NODE:~/kube/
     ssh $NODE "sudo cp ~/kube/bin/* /opt/bin/ ; \
                sudo cp ~/kube/initd/* /etc/init.d/ ; \
+               sudo cp ~/kube/init_conf/* /etc/init/ ; \
                sudo cp ~/kube/default/* /etc/default ; \
                sudo chmod +x /etc/init.d/etcd /etc/init.d/kubelet \
                            /etc/init.d/kube-proxy /etc/init.d/flanneld"
@@ -198,7 +182,6 @@ echo FLANNEL_OPTS="\"$FLANNEL_OPTS\"" > /opt/bin/autoscale/kube/default/flanneld
 transfer-files
 run-services
 
-bash $GCP_FILE add $NODE_IP $TYPE $INST_NAME
 sleep 3
 
 $BIN_KUBECTL label nodes $NODE_IP type=GCE || true

@@ -40,7 +40,7 @@ while true; do
   fi
 done
 
-# Request the id_rsa.pub file of OPenVPN
+# Request the id_rsa.pub file from OPenVPN Server
 ssh_id=$(curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/id_rsa)
 echo "id_rsa of '$OPENVPN_SERVER_IP': $ssh_id"  >> $LOG_FILE
 

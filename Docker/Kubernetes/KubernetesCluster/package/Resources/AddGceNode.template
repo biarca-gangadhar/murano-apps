@@ -15,14 +15,13 @@ Version: 1.0.0
 Name: Add a GCE Public Node
 
 Parameters:
-  ip: $ip
-  type: $type
+  masterIp: $masterIp
+  nodeIp: $nodeIp
   username: $username
   password: $password
-  masterIp: $masterIp
 
 Body: |
-  return setup('{0} {1} {2} {3} {4}'.format(args.ip, args.type, args.masterIp, args.username, args.password)).stdout
+  return setup('{0} {1} {2} {3}'.format(args.masterIp, args.nodeIp, args.username, args.password)).stdout
 
 Scripts:
   setup:
