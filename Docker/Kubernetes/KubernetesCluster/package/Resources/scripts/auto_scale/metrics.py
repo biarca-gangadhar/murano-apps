@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+'''This files collects the CPU metrics of all kubernetes
+minion nodes and then scales up/down nodes based on those metrics
+'''
 import json
 import urllib.request
 import time
@@ -18,7 +21,7 @@ MIN_CPU_LIMIT = 0
 CUR_NODES_COUNT = 0
 POLLING_CLUSTER_PERIOD = 15
 NODES_OBJ = {}
-ALL_NODES = {}  # { "nodeIP" { "cpu" : 40, "auto": True } }
+ALL_NODES = {}  # eg: { "nodeIP" { "cpu" : 40, "auto": True } }
 MAX_HYSTERESIS_COUNT = 6
 # sample_type could be "scaleUp" or "scaleDown"
 CUR_HYSTERESIS = {"count": 0, "sample_type": None}
@@ -42,18 +45,18 @@ def get_params():
     MAX_CPU_LIMIT = int(configParser.get('DEFAULT', 'MAX_CPU_LIMIT'))
     MIN_CPU_LIMIT = int(configParser.get('DEFAULT', 'MIN_CPU_LIMIT'))
     try:
-        MAX_GCE_VMS_LIMIT = int(configParser.get('GCE', 'gcp_minion_nodes'))
+        MAX_GCE_VMS_LIMIT = int(configParser.get('GCE', 'gce_minion_nodes'))
     except Exception:
         MAX_GCE_VMS_LIMIT = 0
 
 
 # Calculate CPU usage of a node
 def get_cpu_usage(node_ip):
-    # Get the no.of cores from cAdvisor
+    # Get the no.of cores from cAdvisor, helps in CPU usage calculation
     api = "http://"+node_ip+":"+CADVISOR_PORT+"/api/v1.3/machine"
     request = urllib.request.Request(api)
-    response = urllib.request.urlopen(request)
     try:
+        response = urllib.request.urlopen(request)
         decode_response = (response.read().decode('utf-8'))
     except Exception:
         return False
@@ -129,14 +132,14 @@ def get_total_nodes():
         for i in range(0, number_minions):
             UPDATED_NODES_LIST.append(
                 NODES_OBJ["items"][i]["metadata"]["name"])
-        get_gcp_nodes()
+        get_gce_nodes()
         return number_minions
     except Exception:
         return -1
 
 
 # Update nodes list
-def get_gcp_nodes():
+def get_gce_nodes():
     global NODES_OBJ, AUTOSCALE_NODES, GCE_IN_USE
     GCE_IN_USE = []
     AUTOSCALE_NODES = []

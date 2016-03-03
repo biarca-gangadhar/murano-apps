@@ -1,4 +1,7 @@
 #!/bin/bash
+# This script copies the compute_api.py file to master node
+# compute_api.py creates/deletes the instances
+# This file also installs google-api-python-client library for GCE api calls
 
 log_file=/var/log/gce.log
 echo "GCE Auto Scale setup started" >> $log_file

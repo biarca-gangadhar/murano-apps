@@ -1,5 +1,5 @@
 #!/bin/bash
-# Removes the gcp node from k8s cluster
+# Removes the gce node from k8s cluster
 
 set -e
 
@@ -15,13 +15,6 @@ KUBECTL_BIN="/opt/bin/kubectl"
 if [ $NODE_IP == "0" ] || [ -z $NODE_IP ] ; then
     echo '{ "error": "No GCE nodes to delete" }'
     exit 0
-fi
-
-#FILE_AUTO_FLAG="/tmp/autoscale"
-if [ ! -f $FILE_AUTO_FLAG ] ; then
-    AUTO_FLAG=0
-else
-    AUTO_FLAG=$(cat $FILE_AUTO_FLAG)
 fi
 
 # files to remove from node
@@ -60,9 +53,7 @@ function stop-services() {
 
 # delete this node from kubectl get nodes
 $KUBECTL_BIN label nodes $NODE_IP type- || true
-if [ $AUTO_FLAG == "1" ] ; then
-   $KUBECTL_BIN label nodes $NODE_IP creationType- || true
-fi
+$KUBECTL_BIN label nodes $NODE_IP creationType- || true
 $KUBECTL_BIN delete nodes $NODE_IP
 
 remove-etcd

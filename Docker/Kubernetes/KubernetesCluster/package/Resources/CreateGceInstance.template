@@ -12,30 +12,20 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Transfer node scaling files
+Name: Creates a GCE instance
+
+Parameters:
+  name: $name
+  zone: $zone
 
 Body: |
-  return setup().stdout
+  return setup('{0} {1}'.format(args.name, args.zone)).stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: GCPCommonFilesSetup.sh
-    Files:
-      - auto_scale/autoscale.conf
-      - auto_scale/addGceNode.sh
-      - auto_scale/deleteGceNode.sh
-      - auto_scale/kube/reconfDocker.sh
-      - init_conf/etcd.conf
-      - init_conf/kubelet.conf
-      - init_conf/kube-proxy.conf
-      - init_conf/flanneld.conf
-      - initd_scripts/etcd
-      - initd_scripts/kubelet
-      - initd_scripts/kube-proxy
-      - initd_scripts/flanneld
-
+    EntryPoint: createGceInstance.sh
     Options:
       captureStdout: true
       captureStderr: true

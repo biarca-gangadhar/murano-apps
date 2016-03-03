@@ -12,7 +12,7 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Checking Docker and Bridge-Utils
+Name: Verify and install Docker and Bridge-Utils packages
 
 Parameters:
   ip: $ip

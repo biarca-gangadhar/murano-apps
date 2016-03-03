@@ -17,7 +17,7 @@ Name: Kubernetes Cluster
 Description: |
  Kubernetes is an open source system for managing containerized applications across multiple hosts,
  providing basic mechanisms for deployment, maintenance, and scaling of applications.
-Author: 'Mirantis, Inc and Vedams, Inc'
+Author: 'Mirantis, Inc'
 Tags: [Docker, Kubernetes]
 Classes:
  io.murano.apps.docker.kubernetes.KubernetesCluster: KubernetesCluster.yaml

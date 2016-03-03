@@ -12,20 +12,18 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Creates a GCE instance
-
-Parameters:
-  name: $name
-  zone: $zone
+Name: Transfer file to add/delete GCE instance
 
 Body: |
-  return setup('{0} {1}'.format(args.name, args.zone)).stdout
+  return setup().stdout
 
 Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: createGceNode.sh
+    EntryPoint: GCEScaleSetup.sh
+    Files:
+      - auto_scale/gce/compute_api.py
     Options:
       captureStdout: true
       captureStderr: true

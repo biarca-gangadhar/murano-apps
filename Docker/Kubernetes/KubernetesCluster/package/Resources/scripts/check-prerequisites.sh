@@ -64,7 +64,7 @@ function check-ssh-port()
         LOG "I" "Connection failed($count). Retrying.."
      fi
   done
-  # SSH port is not in open. 
+  # SSH port is not in open.
   return 1
 }
 
@@ -95,7 +95,7 @@ function install-prerequisites()
   ssh $NODE "sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D"
   ssh $NODE "echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' > /etc/apt/sources.list.d/docker.list"
   ssh $NODE "sudo apt-get update"
-  ssh $NODE "DEBIAN_FRONTEND=noninteractive sudo apt-get install docker-engine -y" 
+  ssh $NODE "sudo apt-get install docker-engine -y"
   ssh $NODE "service docker start"
 
   ssh $NODE "sudo apt-get install bridge-utils -y"
@@ -117,7 +117,7 @@ function check-prerequisites()
 
 
 # Check pre-requisites, install if not
-$(check-prerequisites)
+check-prerequisites
 if [ $? -ne 0 ] ; then
   install-prerequisites
 fi

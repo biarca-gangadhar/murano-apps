@@ -12,21 +12,20 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: $planName
+Name: Delete GCE GCE instance from cloud
 
 Parameters:
-  path: $path
-  fileContent: $fileContent
+  name: $name
+  zone: $zone
 
 Body: |
-  return putFile("'{0}' '{1}'".format(args.path, args.fileContent)).exitCode == 0
+  return setup('{0} {1}'.format(args.name, args.zone)).stdout
 
 Scripts:
-  putFile:
+  setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: putFile.sh
+    EntryPoint: deleteGceInstance.sh
     Options:
-      captureStdout: false
+      captureStdout: true
       captureStderr: true
-      verifyExitcode: $verifyExitcode

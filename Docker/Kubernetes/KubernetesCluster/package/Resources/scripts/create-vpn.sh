@@ -1,5 +1,6 @@
 #!/bin/bash
-# Creates VPN connection between Murano instanecs and GCE instances
+# Creates VPN connection between Murano instances and GCE instance
+# And returns the tap0 IP of the instance
 
 # $1 - GCE external IP
 # $2 - openVPN Server IP
@@ -52,7 +53,7 @@ if [ $? != "0" ] ; then
 fi
 echo "Added OpenVPN Server to authorized keys." >> $LOG_FILE
 
-# Request OpenVPN to create tap interface
+# Request OpenVPN servcer to create tap interface
 result=$(curl -s http://$OPENVPN_SERVER_IP:5000/api/v1/create/$GCE_EXTERNAL_IP)
 if [ $result != "OK" ] ; then
     echo "VPN creation error"
@@ -77,5 +78,7 @@ while true; do
     count=$((count+1))
 done
 echo "Tap IP: $tapIP" >> $LOG_FILE
+
+# returns tap IP
 echo $tapIP
 exit 0

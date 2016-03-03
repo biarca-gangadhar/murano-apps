@@ -1,5 +1,21 @@
 #!/bin/bash
-# This script adds GCE node to Murano k8s cluster.
+# Copyright 2015 The Kubernetes Authors All rights reserved.
+# Copyright 2016 Vedams, Inc All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# A library of helper functions that each provider hosting Kubernetes
+# must implement to use cluster/kube-*.sh scripts.
 
 set -e
 
@@ -37,15 +53,6 @@ PORT_K8S_MASTER=8080
 
 BIN_ETCDCTL=/opt/bin/etcdctl
 BIN_KUBECTL=/opt/bin/kubectl
-
-# Check it's added by autoscale service or UI
-FILE_AUTO_FLAG="/tmp/autoscale"
-if [ ! -f $FILE_AUTO_FLAG ] ; then
-    AUTO_FLAG=0
-else
-    AUTO_FLAG=$(cat $FILE_AUTO_FLAG)
-fi
-
 
 function ssh-setup()
 {
@@ -185,8 +192,3 @@ run-services
 sleep 3
 
 $BIN_KUBECTL label nodes $NODE_IP type=GCE || true
-
-# If this operation runs from autoscale service, add label
-if [ $AUTO_FLAG == "1" ] ; then
-    $BIN_KUBECTL label nodes $NODE_IP creationType="Auto" || true
-fi

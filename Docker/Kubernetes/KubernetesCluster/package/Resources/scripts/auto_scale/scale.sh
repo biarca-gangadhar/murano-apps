@@ -1,20 +1,24 @@
 #!/bin/bash
+# This file is invoked by autoscale service/metrics file
+# This script scales nodes UP/Down by calling murano action IDs
+
+# Arguments:
+# $1 - up/down
+# $2 - gce (optional)
 
 action=$1
-gcp=$2
-
-AUTO_FLAG_FILE="/tmp/autoscale"
+gce=$2
 
 if [ "$action" == "up" ] || [ "$action" == "down" ]
 then
-    if [  -z $gcp ]
+    if [  -z $gce ]
     then
        echo "Scaling $action .."
-    elif [ $gcp == "gce" ]
+    elif [ $gce == "gce" ]
     then
        echo "Scaling $action gce.."
     else
-       echo "Unknow parameter: $gcp"
+       echo "Unknow parameter: $gce"
        exit 0
     fi
 else
@@ -86,32 +90,28 @@ scaleDown=$(echo $services | grep -o '[a-z0-9-]*_scaleNodesDown')
 scaleGceUp=$(echo $services | grep -o '[a-z0-9-]*_addGceNode')
 scaleGceDown=$(echo $services | grep -o '[a-z0-9-]*_deleteGceNode')
 
-if [ -z $gcp ] && [ $action == "up" ] ; then
+if [ -z $gce ] && [ $action == "up" ] ; then
     echo "Action ID: $scaleUp"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleUp)
-elif [ -z $gcp ] && [ $action == "down" ] ; then
+elif [ -z $gce ] && [ $action == "down" ] ; then
     echo "Action ID: $scaleDown"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleDown)
-elif [ $gcp == "gce" ] && [ $action == "up" ]; then
-    echo 1 > $AUTO_FLAG_FILE
+elif [ $gce == "gce" ] && [ $action == "up" ]; then
     echo "Action ID: $scaleGceUp"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleGceUp)
-elif [ $gcp == "gce" ] && [ $action == "down" ]; then
-    echo 1 > $AUTO_FLAG_FILE
+elif [ $gce == "gce" ] && [ $action == "down" ]; then
     echo "Action ID: $scaleGceDown"
     task=$(curl -s -k -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d '{"autoscale": "True"}' $MURANO_URL/v1/environments/$env_id/actions/$scaleGceDown)
 fi
 
 task_id=$(echo $task | jq --raw-output ".task_id" 2> /dev/null)
 if [ $? -ne 0 ] ; then
-    echo 0 > $AUTO_FLAG_FILE
     #echo "error: $task"
     echo "Another deployment is going on.."
     exit 1
 fi
 
 if [ ! $task_id ]; then
-    echo 0  > $AUTO_FLAG_FILE
     echo "Another deployment is going on.."
     exit 1
 fi
@@ -137,11 +137,9 @@ while true; do
   if [ $stat == "0" ] ; then
     result=$(curl -s -k -H "X-Auth-Token: $token" $MURANO_URL/v1/environments/$env_id/actions/$task_id)
     if [ "$(echo $result | jq ".isException")" == "false" ] ; then
-       echo 0 > $AUTO_FLAG_FILE
        echo "Done"
        exit 0
     else
-       echo 0 > $AUTO_FLAG_FILE
        echo "Exception: $(echo $result | jq ".result")"
        exit 1
     fi

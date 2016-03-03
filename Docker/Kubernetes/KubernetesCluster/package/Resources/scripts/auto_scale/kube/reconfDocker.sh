@@ -1,11 +1,13 @@
 #!/bin/bash
 # reconfigure docker network setting
+# Brings the docker br0 into flannel n/w
 
 if [ "$(id -u)" != "0" ]; then
   echo >&2 "Please run as root"
   exit 1
 fi
 
+# config-default.sh contains the flannel netwok
 source ~/kube/config-default.sh
 
 attempt=0
@@ -18,11 +20,13 @@ while [[ ! -f /run/flannel/subnet.env ]]; do
     sleep 3
 done
 
+# delete docker bridge
 sudo ip link set dev docker0 down
 sudo brctl delbr docker0
 
 source /run/flannel/subnet.env
 
+# create docker bridge in flannel n/w
 echo DOCKER_OPTS=\"${DOCKER_OPTS} -H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock \
        --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU}\" > /etc/default/docker
 sudo service docker restart

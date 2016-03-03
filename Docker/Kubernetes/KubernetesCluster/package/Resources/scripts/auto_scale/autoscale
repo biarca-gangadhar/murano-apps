@@ -1,4 +1,5 @@
 #!/bin/bash
+# autoscale serviec file
 
 NAME="autoscale"
 PIDFILE="/var/run/$NAME.pid"

@@ -73,12 +73,9 @@ Properties:
     Default: []
     Usage: Out
 
-  autoScaling:
+  enableAutoScaling:
     Contract: $.bool().notNull()
     Default: false
-
-  gcpMinionCount:
-    Contract: $.int()
 
   enableAutoCreationGCE:
     Contract: $.bool()
@@ -140,7 +137,7 @@ Methods:
               - $.masterNode.deployInstance()
               - $.minionNodes.take($.nodeCount).pselect($.deployInstance())
               - $.gatewayNodes.take($.gatewayCount).pselect($.deployInstance())
-          - $.hybridCloudAutoScale.setupGCPScale()
+          - $.hybridCloudAutoScale.setupGCEScale()
           - $.masterNode.setupEtcd()
           - $.minionNodes.skip($.nodeCount).select($.removeFromCluster())
           - $.gatewayNodes.skip($.gatewayCount).select($.removeFromCluster())
@@ -159,7 +156,7 @@ Methods:
           - $.setAttr(lastNodeCount, $.nodeCount)
           - $.setAttr(lastGatewayCount, $.gatewayCount)
           - $._environment.reporter.report($this, 'Kubernetes cluster is up and running')
-          - If: $.autoScaling != false
+          - If: $.enableAutoScaling != false
             Then:
                - $.hybridCloudAutoScale.setupAutoscale()
       - $.setAttr(serviceEndpoints, $.serviceEndpoints)

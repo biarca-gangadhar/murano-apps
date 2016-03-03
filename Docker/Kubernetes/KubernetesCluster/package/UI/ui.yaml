@@ -56,22 +56,22 @@ Templates:
   hybridCloudAutoScale:
     ?:
       type: io.murano.apps.docker.kubernetes.HybridCloudAutoScale
-    autoScaling: $.scaleConfiguration.autoScaling
+    enableAutoScaling: $.scaleConfiguration.enableAutoScaling
     maxMinionCount: $.appConfiguration.maxMinionCount
     minionCount: $.appConfiguration.minionCount
-    maxCPUusage: $.scaleConfiguration.maxCPUusage
-    minCPUusage: $.scaleConfiguration.minCPUusage
+    maxCPUUsage: $.scaleConfiguration.maxCPUUsage
+    minCPUUsage: $.scaleConfiguration.minCPUUsage
     openstackIP: $.scaleConfiguration.openstackIP
     tenantName: $.scaleConfiguration.tenantName
-    userName: $.scaleConfiguration.userName
+    username: $.scaleConfiguration.username
     userPassword: $.scaleConfiguration.userPassword
     enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
     existingNodes: $.hybridCloudConfiguration.existingNodes
-    gcpUserName: $.hybridCloudConfiguration.gcpUserName
-    gcpPassword: $.hybridCloudConfiguration.gcpPassword
+    existingNodeUsername: $.hybridCloudConfiguration.existingNodeUsername
+    existingNodePassword: $.hybridCloudConfiguration.existingNodePassword
     enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
     openVPNServerIP: $.hybridCloudConfiguration.openVPNServerIP
-    gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
+    gceMinionCount: $.hybridCloudConfiguration.gceMinionCount
     gcePrivateKey: $.hybridCloudConfiguration.gcePrivateKey
 
 Application:
@@ -87,13 +87,10 @@ Application:
   dockerRegistry: $.appConfiguration.dockerRegistry
   dockerMirror: $.appConfiguration.dockerMirror
   gcloudKey: $.appConfiguration.gcloudKey
-  autoScaling: $.scaleConfiguration.autoScaling
+  enableAutoScaling: $.scaleConfiguration.enableAutoScaling
   enableExistingNodes: $.hybridCloudConfiguration.enableExistingNodes
   existingNodes: $.hybridCloudConfiguration.existingNodes
-  gcpUserName: $.hybridCloudConfiguration.gcpUserName
-  gcpPassword: $.hybridCloudConfiguration.gcpPassword
   enableAutoCreationGCE: $.hybridCloudConfiguration.enableAutoCreationGCE
-  gcpMinionCount: $.hybridCloudConfiguration.gcpMinionCount
 
 
 Forms:
@@ -250,14 +247,14 @@ Forms:
 
   - scaleConfiguration:
       fields:
-        - name: autoScaling
+        - name: enableAutoScaling
           type: boolean
-          initial: true
+          initial: false
           required: false
           label: Enable Auto Scaling
           description: >-
             Check to Enable Auto Scaling of Minion Nodes.
-        - name: maxCPUusage
+        - name: maxCPUUsage
           type: integer
           label: Max %Cpu(s)
           initial: 60
@@ -265,7 +262,7 @@ Forms:
           required: false
           description: >-
             Max CPU usage number for Auto Scaling
-        - name: minCPUusage
+        - name: minCPUUsage
           type: integer
           label: Min %Cpu(s)
           initial: 20
@@ -286,7 +283,7 @@ Forms:
           label: Tenant Name
           description: >-
             Provide tenant name.
-        - name: userName
+        - name: username
           type: string
           required: false
           initial: admin
@@ -299,6 +296,7 @@ Forms:
           label: Password
           description: >-
             Provide password for user.
+
   - hybridCloudConfiguration:
       fields:
         - name: title1
@@ -310,7 +308,7 @@ Forms:
           type: boolean
           initial: false
           required: false
-          label: Use existing openvpn Node(s)
+          label: Use existing OpenVPN Node(s)
           description: >-
             Enable if openVPN nodes already exist in  the network
         - name: existingNodes
@@ -318,19 +316,20 @@ Forms:
           required: false
           label: Nodes
           description: >-
-            provide comma separated node IP details
-        - name: gcpUserName
+            Provide comma separated node IP details
+        - name: existingNodeUsername
           type: string
           required: false
           label: Username
           description: >-
             Provide privileged username
-        - name: gcpPassword
+        - name: existingNodePassword
           type: string
           required: false
           label: Password
           description: >-
             Provide privileged user password
+
         - name: title2
           type: string
           required: false
@@ -346,7 +345,7 @@ Forms:
           label: OpenVPN Server IP
           required: false
           description: Provide OpenVPN Server IP
-        - name: gcpMinionCount
+        - name: gceMinionCount
           type: integer
           label: Max. GCE nodes count
           initial: 1

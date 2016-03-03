@@ -1,10 +1,13 @@
 #!/bin/bash
+# This script transfer the files which helps in
+# running autoscale service. And prepares the
+# autoscale.conf for autoscale service configuration
 
 #
 # command line arguments
 #
 
-# $1  - max_vms_limit 
+# $1  - max_vms_limit
 # $2  - min_vms_limit
 # $3  - MAX_CPU_LIMIT
 # $4  - MIN_CPU_LIMIT
@@ -36,7 +39,7 @@ sed -i "/^\[DEFAULT]/ a\password=${10}" $conf_file
 sed -i "/^\[DEFAULT]/ a\tenant=${8}" $conf_file
 sed -i "/^\[DEFAULT]/ a\username=${9}" $conf_file
 sed -i "/^\[DEFAULT]/ a\OPENSTACK_IP=${7}" $conf_file
-sed -i "/^\[GCE]/ a\gcp_minion_nodes=${11}" $conf_file
+sed -i "/^\[GCE]/ a\gce_minion_nodes=${11}" $conf_file
 
 cp auto_scale/autoscale.conf /etc/autoscale/
 cp auto_scale/metrics.py /opt/bin/autoscale/

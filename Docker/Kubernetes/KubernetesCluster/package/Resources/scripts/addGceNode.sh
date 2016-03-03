@@ -1,12 +1,20 @@
 #!/bin/bash
 # Add a GCE node to K8S cluster
 
-# Args: 
-# $1 - NOdeIp that is going add in cluster
-# $2 - Type of Node like 'existing' or 'new'
-# $3 - K8S Master node Ip for Kubelet configuration
-# $4 - Username if $2=existing , Instance Name if $2=new
-# $5 - Password if $2=existing
+# Args:
+# $1 - AutoScale: Tue/False
+# $2 - Master node IP
+# $3 - Node IP that is going to add
+# $4 - username of the node
+# $5 - Password of the node
 
-echo "Adding a Gce Node. Received args: $1 - $2 - $3 - $4" >> /var/log/gce.log
-bash /opt/bin/autoscale/addGceNode.sh $1 $2 $3 $4 >> /var/log/gce.log
+echo "Adding a Gce Node. Received args: $*" >> /var/log/gce.log
+AUTOSCALE=$1
+MASTER_IP=$2
+NODE_IP=$3
+USERNAME=$4
+PASSWORD=$5
+bash /opt/bin/autoscale/addGceNode.sh $MASTER_IP $NODE_IP $USERNAME $PASSWORD >> /var/log/gce.log
+if [ $AUTOSCALE == "True" ] ; then
+    /opt/bin/kubectl label nodes $NODE_IP creationType=Auto >> /var/log/gce.log || true
+fi

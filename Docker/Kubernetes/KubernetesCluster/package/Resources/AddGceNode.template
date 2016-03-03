@@ -12,16 +12,17 @@
 
 FormatVersion: 2.0.0
 Version: 1.0.0
-Name: Add a GCE Public Node
+Name: Adds a GCE Public Node to Cluster
 
 Parameters:
+  autoscale: $autoscale
   masterIp: $masterIp
   nodeIp: $nodeIp
   username: $username
   password: $password
 
 Body: |
-  return setup('{0} {1} {2} {3}'.format(args.masterIp, args.nodeIp, args.username, args.password)).stdout
+  return setup('{0} {1} {2} {3} {4}'.format(args.autoscale, args.masterIp, args.nodeIp, args.username, args.password)).stdout
 
 Scripts:
   setup:
