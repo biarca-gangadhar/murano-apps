@@ -2,19 +2,33 @@
 OpenStack Murano Kubernetes - Auto Scaling Compute Infrastructure in Hybrid Cloud
 =================================================================================
 
-This document walks the reader on how to use the optional ability in a OpenStack based Murano Kubernetes deployment, to auto scale nodes in Kubernetes cluster, based on CPU usage policy across nodes in Hybrid Cloud environment.
+This document walks the reader on how to use the optional ability
+in a OpenStack based Murano Kubernetes deployment, to auto scale nodes in Kubernetes 
+cluster, based on CPU usage policy across nodes in Hybrid Cloud environment.
 
-Users can define optimal cluster wide CPU usage (high/low) watermarks in the UI presented during deployment of the Kubernetes Application from Murano catalog. Crossing these watermarks trigger Auto Scale process.
+Users can define optimal cluster wide CPU usage (high/low) watermarks in the UI
+presented during deployment of the Kubernetes Application from Murano catalog. 
+Crossing these watermarks trigger Auto Scale process.
 
-If Hybrid Auto scaling support is enabled, a service running on the Kubernetes master node, can spin up or down nodes to either it.s own private OpenStack or a connected public cloud service (such as Google Cloud)  and provision the new nodes to become part of the Kubernetes cluster. Thus, extending the reach of private OpenStack Kubernetes cluster elastically to a public cloud service.
+If Hybrid Auto scaling support is enabled, a service running on the Kubernetes
+master node, can spin up or down nodes to either it.s own private OpenStack
+or a connected public cloud service (such as Google Cloud)  and provision the new nodes
+to become part of the Kubernetes cluster. Thus, extending the reach of private OpenStack
+Kubernetes cluster elastically to a public cloud service.
 
 
 Overview of Auto Scaling Nodes
 ------------------------------
 
-Once the Kubernetes cluster is deployed and is up & running, every k8s node is monitored by a built-in cAdvisor service. cAdvisor auto-discovers all containers in the machine and collects CPU, memory, filesystem, and network usage statistics.
+Once the Kubernetes cluster is deployed and is up & running, every k8s node is monitored
+by a built-in cAdvisor service. cAdvisor auto-discovers all containers in the machine and 
+collects CPU, memory, filesystem, and network usage statistics.
 
-A custom service named .autoscale. runs on the master node. This service helps to: collect the CPU usage of every k8s node using cAdvisor and analyse it periodically. The .autoscale. service scales up a node when cluster nodes CPU usage exceeds the user defined upper threshold watermark. Similarly, a node is scaled down when cluster nodes CPU usage is less than the defined lower threshold.
+A custom service named "autoscale" runs on the master node. This service helps to:
+collect the CPU usage of every k8s node using cAdvisor and analyse it periodically. 
+The "autoscale" service scales up a node when cluster nodes CPU usage exceeds the user defined 
+upper threshold watermark. Similarly, a node is scaled down when cluster nodes CPU usage is less
+than the defined lower threshold.
 
 
 How to install autoscaling on Kubernetes
@@ -47,24 +61,24 @@ Needs the user to define the following params on the UI:
   * Max k8s Count: Maximum Openstack k8s nodes to scale
   * Total GCE nodes count: GCE node count that can be scaled up to.
 
-#. The .autoscale. service sends request to the kubernetes master to poll and get state of k8s nodes.
+#. The "autoscale" service sends request to the kubernetes master to poll and get state of k8s nodes.
 
-#. For all nodes in .ready. state, the .autoscale.service requests cAdvisor of that node to get machine and resource usage details. Using these details, the .autoscale.service calculates the CPU usage of that node. This step is repeated for every k8s node.
+#. For all nodes in .ready. state, the "autoscale"service requests cAdvisor of that node to get machine and resource usage details. Using these details, the "autoscale"service calculates the CPU usage of that node. This step is repeated for every k8s node.
 
-#. The .autoscale. service stores all nodes CPU usage in a dictionary object for calculating state of cluster.
+#. The "autoscale" service stores all nodes CPU usage in a dictionary object for calculating state of cluster.
 
 #. If CPU metrics from all nodes is within upper and lower CPU threshold criteria  set by user, step-1 is repeated after (a configurable) sleep period (15s for now).
 
-#. The .autoscale. service requests for a scale up if:
+#. The "autoscale" service requests for a scale up if:
 
     If one or more node is operating above an upper threshold CPU mark.
     And, remaining nodes are operating well above lower threshold CPU mark
-#. The .autoscale. service requests for a scale down if:
+#. The "autoscale" service requests for a scale down if:
 
     If one or more node is operating less than lower threshold CPU mark.
     And, remaining nodes operating within upper threshold CPU mark
 
-#. If some nodes are found to be under lower threshold and some nodes operate above upper CPU threshold usage, the .autoscale. service expects Kubernetes service to distribute & balance load and repeats step-1.
+#. If some nodes are found to be under lower threshold and some nodes operate above upper CPU threshold usage, the "autoscale" service expects Kubernetes service to distribute & balance load and repeats step-1.
 
 .. image:: workflow.png
     :align: center
@@ -116,7 +130,8 @@ User can configure hybrid cloud section in the following two ways:
 * Configuring the already available OpenVPN provisioned GCE nodes.
 * GCE elastic scaling by creating/deleting instance on demand and then provisioning them using OpenVPN.
 
-At the time of package deployment, GCE Common files setup will run, install necessary packages and copy the files to GCE node and provision it.
+At the time of package deployment, GCE Common files setup will run, install necessary packages
+and copy the files to GCE node and provision it.
 
 Kubernetes Hybrid Cloud actions
 --------------------------------
