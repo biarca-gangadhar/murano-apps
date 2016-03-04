@@ -58,7 +58,6 @@ Templates:
       type: io.murano.apps.docker.kubernetes.HybridCloudAutoScale
     enableAutoScaling: $.scaleConfiguration.enableAutoScaling
     maxMinionCount: $.appConfiguration.maxMinionCount
-    minionCount: $.appConfiguration.minionCount
     maxCPUUsage: $.scaleConfiguration.maxCPUUsage
     minCPUUsage: $.scaleConfiguration.minCPUUsage
     openstackIP: $.scaleConfiguration.openstackIP

@@ -25,7 +25,7 @@ Scripts:
   setup:
     Type: Application
     Version: 1.0.0
-    EntryPoint: create-vpn.sh
+    EntryPoint: establish-vpn-connection.sh
     Files: []
 
     Options:

@@ -24,8 +24,6 @@ Scripts:
     EntryPoint: GCECommonFilesSetup.sh
     Files:
       - auto_scale/autoscale.conf
-      - auto_scale/addGceNode.sh
-      - auto_scale/deleteGceNode.sh
       - auto_scale/kube/reconfDocker.sh
       - init_conf/etcd.conf
       - init_conf/kubelet.conf

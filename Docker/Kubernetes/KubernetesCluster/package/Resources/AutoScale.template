@@ -16,7 +16,6 @@ Name: Setup Auto Scaling
 
 Parameters:
   maxMinionCount: $maxMinionCount
-  minionCount: $minionCount
   maxCPUUsage: $maxCPUUsage
   minCPUUsage: $minCPUUsage
   ip: $ip
@@ -28,7 +27,7 @@ Parameters:
   totalGceNodes: $totalGceNodes
 
 Body: |
-  return setup('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10}'.format(args.maxMinionCount, args.minionCount, args.maxCPUUsage, args.minCPUUsage, args.ip,args.environmentName, args.openstackIP, args.tenantName, args.username, args.userPassword, args.totalGceNodes)).stdout
+  return setup('{0} {1} {2} {3} {4} {5} {6} {7} {8} {9}'.format(args.maxMinionCount, args.maxCPUUsage, args.minCPUUsage, args.ip,args.environmentName, args.openstackIP, args.tenantName, args.username, args.userPassword, args.totalGceNodes)).stdout
 
 Scripts:
   setup:

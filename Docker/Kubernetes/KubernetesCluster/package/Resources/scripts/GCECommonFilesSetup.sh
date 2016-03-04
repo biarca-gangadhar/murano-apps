@@ -17,8 +17,6 @@ mkdir -p /opt/bin/autoscale/kube/init_conf
 mkdir -p /etc/autoscale
 
 # Transfer the files which adds/deletes node into cluster
-cp auto_scale/addGceNode.sh /opt/bin/autoscale/addGceNode.sh
-cp auto_scale/deleteGceNode.sh /opt/bin/autoscale/deleteGceNode.sh
 cp auto_scale/kube/reconfDocker.sh /opt/bin/autoscale/kube/reconfDocker.sh
 
 cp init_conf/etcd.conf /opt/bin/autoscale/kube/init_conf

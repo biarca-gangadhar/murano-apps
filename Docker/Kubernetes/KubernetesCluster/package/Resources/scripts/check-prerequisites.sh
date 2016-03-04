@@ -94,11 +94,11 @@ function install-prerequisites()
 {
   ssh $NODE "sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D"
   ssh $NODE "echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' > /etc/apt/sources.list.d/docker.list"
-  ssh $NODE "sudo apt-get update"
-  ssh $NODE "sudo apt-get install docker-engine -y"
+  ssh $NODE "apt-get update"
+  ssh $NODE "apt-get install docker-engine -y"
   ssh $NODE "service docker start"
 
-  ssh $NODE "sudo apt-get install bridge-utils -y"
+  ssh $NODE "apt-get install bridge-utils -y"
 }
 
 # Check docker and bridge-utils are installed
@@ -119,7 +119,7 @@ function check-prerequisites()
 # Check pre-requisites, install if not
 check-prerequisites
 if [ $? -ne 0 ] ; then
-  install-prerequisites
+  install-prerequisites >> $LOG_FILE
 fi
 
 MESSAGE "I" '{"status": "success", "description": "none"}'

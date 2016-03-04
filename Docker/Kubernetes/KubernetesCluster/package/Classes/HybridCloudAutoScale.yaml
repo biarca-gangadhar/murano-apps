@@ -24,8 +24,6 @@ Extends: std:Application
 Properties:
   maxMinionCount:
     Contract: $.int().notNull()
-  minionCount:
-    Contract: $.int().notNull()
   maxCPUUsage:
     Contract: $.int()
     Default: 100
@@ -152,7 +150,6 @@ Methods:
               - $._environment.reporter.report($this, 'Setting up Autoscale on Master Node')
               - $template: $resources.yaml('AutoScale.template').bind(dict(
                     maxMinionCount => $.maxMinionCount,
-                    minionCount => $.minionCount,
                     maxCPUUsage => $.maxCPUUsage,
                     minCPUUsage => $.minCPUUsage,
                     ip => $._cluster.masterNode.getIp(),
@@ -227,6 +224,7 @@ Methods:
           Contract: $.string().notNull()
     Body:
       - $count: len($.existingNodesList)
+      # Check the last node in the list which has same flag as $atoscale
       - While: $count > 0
         Do:
           - $count: $count - 1
@@ -234,11 +232,11 @@ Methods:
           - If: $node.autoscale = $autoscale
             Then:
               - $ip: $node.ip
-              - $.existingNodesList: $.existingNodesList.delete($count)
-              - $.availableNodesList: $.availableNodesList.append($ip)
               - $msg: 'Deleting existing node {0} from cluster'
               - $._environment.reporter.report($this, $msg.format($ip))
               - $.deleteNodeFromCluster($ip, $.existingNodeUsername)
+              - $.existingNodesList: $.existingNodesList.delete($count)
+              - $.availableNodesList: $.availableNodesList.append($ip)
               - Return:
 
   addGceNode:
@@ -260,7 +258,7 @@ Methods:
             zone => 'us-central1-f'
           ))
       - $gce_ip: $._cluster.masterNode.instance.agent.call($template, $resources, 600)
-      - $msg: 'New GCE instance created with external IP: {0}'
+      - $msg: 'GCE instance created with external IP: {0}'
       - $._environment.reporter.report($this, $msg.format($gce_ip))
       - Try:
         - $._environment.reporter.report($this, 'Verifying and installing prerequisites')
@@ -270,8 +268,8 @@ Methods:
               password => ''
             ))
         - $._cluster.masterNode.instance.agent.call($template, $resources, 600)
-        - $._environment.reporter.report($this, 'Creating VPN Connection between GCE instance and OpenVPN Server')
-        - $template: $resources.yaml('CreateVPNConnection.template').bind(dict(
+        - $._environment.reporter.report($this, 'Establishing VPN Connection')
+        - $template: $resources.yaml('EstablishVPNConnection.template').bind(dict(
               ip => $gce_ip,
               openVPNServerIP => $.openVPNServerIP
             ))

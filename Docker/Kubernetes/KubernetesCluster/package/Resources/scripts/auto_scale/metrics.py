@@ -26,7 +26,7 @@ MAX_HYSTERESIS_COUNT = 6
 # sample_type could be "scaleUp" or "scaleDown"
 CUR_HYSTERESIS = {"count": 0, "sample_type": None}
 UPDATED_NODES_LIST = []
-GCE_IN_USE = []
+GCE_NODES_IN_USE = []
 AUTOSCALE_NODES = []
 K8S_MASTER = ''
 K8S_PORT = '8080'
@@ -41,7 +41,7 @@ def get_params():
     configParser.read(data_file)
     K8S_MASTER = configParser.get('DEFAULT', 'MASTER')
     MAX_VMS_LIMIT = int(configParser.get('DEFAULT', 'max_vms_limit'))
-    MIN_VMS_LIMIT = int(configParser.get('DEFAULT', 'min_vms_limit'))
+    MIN_VMS_LIMIT = 1
     MAX_CPU_LIMIT = int(configParser.get('DEFAULT', 'MAX_CPU_LIMIT'))
     MIN_CPU_LIMIT = int(configParser.get('DEFAULT', 'MIN_CPU_LIMIT'))
     try:
@@ -140,15 +140,15 @@ def get_total_nodes():
 
 # Update nodes list
 def get_gce_nodes():
-    global NODES_OBJ, AUTOSCALE_NODES, GCE_IN_USE
-    GCE_IN_USE = []
+    global NODES_OBJ, AUTOSCALE_NODES, GCE_NODES_IN_USE
+    GCE_NODES_IN_USE = []
     AUTOSCALE_NODES = []
     for node in NODES_OBJ["items"]:
         labels = node["metadata"]["labels"]
         for label in labels:
             if "type" == label:
                 if labels["type"].upper() == "GCE":
-                    GCE_IN_USE.append(node["metadata"]["name"])
+                    GCE_NODES_IN_USE.append(node["metadata"]["name"])
             if "creationType" == label:
                 if labels["creationType"].lower() == "auto":
                     AUTOSCALE_NODES.append(node["metadata"]["name"])
@@ -156,7 +156,7 @@ def get_gce_nodes():
 
 # Check no.of openstack nodes available
 def get_private_nodes(total):
-    return total-len(GCE_IN_USE)
+    return total-len(GCE_NODES_IN_USE)
 
 
 def print_limits():
@@ -209,7 +209,7 @@ def scaleUpNodes():
         print("Scaling up private")
         os.system(scale_script + ' up')
         return True
-    elif (len(GCE_IN_USE) < MAX_GCE_VMS_LIMIT):
+    elif (len(GCE_NODES_IN_USE) < MAX_GCE_VMS_LIMIT):
         # GCE Scale UP
         print("private nodes limit has been reached")
         print("Scaling up GCE")
@@ -222,7 +222,7 @@ def scaleUpNodes():
 
 
 def scaleDownNodes():
-    if (len(GCE_IN_USE) > MIN_GCE_VMS_LIMIT):
+    if (len(GCE_NODES_IN_USE) > MIN_GCE_VMS_LIMIT):
         # GCE Scale Down
         if (len(AUTOSCALE_NODES) > 0):
             print("GCE Scale Down")
