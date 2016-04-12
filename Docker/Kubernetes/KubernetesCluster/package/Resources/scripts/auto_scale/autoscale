@@ -1,5 +1,9 @@
 #!/bin/bash
-# autoscale serviec file
+# autoscale service file
+
+# This service file is going to stay in /etc/init.d directory
+# User can control autoscale service  by running below cmd
+# `service autoscale {start|stop|status|restart}`
 
 NAME="autoscale"
 PIDFILE="/var/run/$NAME.pid"

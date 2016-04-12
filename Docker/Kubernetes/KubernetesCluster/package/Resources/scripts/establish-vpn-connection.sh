@@ -1,6 +1,15 @@
 #!/bin/bash
-# Creates VPN connection between Murano instances and GCE instance
+# Creates VPN connection between Murano k8s cluster network and GCE instance
 # And returns the tap0 IP of the instance
+
+# This script get executed by "addGceNode" action
+# 1. Check ssh port is open. Fail if it's not ready even after few tries
+# 2. Master node has ssh access but OpenVPN doesn't has access to provision.
+#    Request for rsa_id.pub key of OpenVPN and add that to authorized_keys
+#    of Google instance. So VPNServer can access the instance
+# 3. Now request the OpenVPN wit GCE IP to provision it.
+# 4. After Provisioning, instance has to get a tap interface after few seconds.
+#    Wait for tap ip to create and echo it
 
 # $1 - GCE external IP
 # $2 - openVPN Server IP
@@ -67,7 +76,7 @@ count=0
 while true; do
     echo "Waiting for TAP IP" >> $LOG_FILE
     sleep 4
-    tapIP=$(ssh root@$GCE_EXTERNAL_IP "ifconfig tap0" | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}') 
+    tapIP=$(ssh root@$GCE_EXTERNAL_IP "ifconfig tap0" | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
     if [ $tapIP ] ; then
          break
     elif [ $count -eq 4 ] ; then

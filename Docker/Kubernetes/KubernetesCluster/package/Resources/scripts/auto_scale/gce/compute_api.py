@@ -15,6 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''This file create/deletes GCE instance
+To create: compute_api.py --action=insert --zone=<zone> <inst-name>
+To delete: compute_api.py --action=delete --zone=<zone> <inst-name>
+'''
+
 import argparse
 import json
 import sys
@@ -22,6 +27,7 @@ import time
 from apiclient import discovery
 from oauth2client.client import GoogleCredentials
 
+# GCE service account private key file location
 CREDENTIALS_FILE = "/etc/autoscale/MuranoAppDevelopment.json"
 
 

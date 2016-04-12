@@ -1,5 +1,17 @@
 #!/bin/bash
 # This file checks and install docker and bridge-utils packages
+# This file runs when  "addGceNode" scheduled and creates a new GCE node
+
+# 0. `check-ssh-port`: Instance just created. So wait for some time to start ssh service
+# 1. `setup-ssh`: Do ssh setup for the instance. Remove old keys and add to know_hosts
+#    Do ssh-copy-id to prevent password less authentication
+# 2. `check-prerequisites`: Check docker is running and bridge utils exists
+# 3. `install-prerequisites`:Install prerequisites if they are not installed
+
+# Args:
+# $1 - GCE external ip
+# $2 - username of GCE instance
+# $3 - password of GCE instance
 
 LOG_FILE="/var/log/gce.log"
 exec 2>>${LOG_FILE}
@@ -18,7 +30,7 @@ function LOG()
    echo "$NOW UTC - $LEVEL $MSG" >> $LOG_FILE
 }
 
-# prints to stdout and LOG_FILE
+# prints to stdout and $LOG_FILE
 function MESSAGE()
 {
    echo "$2"

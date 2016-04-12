@@ -1,5 +1,10 @@
 #!/bin/bash
-# This script creates a  GCE instance.
+# This script calls compute_api.py to creates a GCE instance.
+
+# To create a GCE instance, name and zone are required
+# It recives name and zone of instance and sends them
+#  as argumnets to compute_api.py
+# This script invokes when "addGceNode" scheduled
 
 # Arguments:
 # $1 - Instance Name

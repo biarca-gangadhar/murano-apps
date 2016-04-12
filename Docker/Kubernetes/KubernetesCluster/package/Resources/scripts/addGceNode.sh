@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Copyright 2015 The Kubernetes Authors All rights reserved.
 # Copyright 2016 Vedams, Inc All rights reserved
 #
@@ -13,6 +14,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# This script adds a GCE node to K8S cluster.
+# This script runs when "addGceNode" action scheduled
+# To add a node to cluster it has to be member of etcd cluster and
+# the node has to runs service kubelet, kubelet and flannel for creating pods and loadbalancing
+
+# General flow of this script:
+# 1. Calls the ssh-setup function for password less access to minion node(GCE VM)
+# 2. To add minion node to etcd cluster, it requires a etcd name.
+#    So generate a etcd name using `create-etcd-name` function.
+# 3. Using that name add it to etcd cluster. And call `etcd-create-opts` for etcd configuration options
+#    that has to run on minion later to complete adding node to  ETCD cluster
+# 4. Generate kubelet, kube-proxy and flannel options to run on minion node.
+# 5. Transfer the k8s binaries and configuration files to node using `transfer-file` function
+# 6. Run the service etcd, kubelet, kube-proxy and flanneld
+# 7. Add a label thats it's a GCE node and add another label for creationType if action is
+#    schecduled by autoscale service
+
+
+# Args:
+# $1 - Auto-scale flag (if true add a auto creation label)
+# $2 - K8S Master node IP
+# $3 - K8S minion node IP that is going add to cluster
+# $4 - Username of minion node
+# $5 - Password of minion node
 
 set -e
 
@@ -32,11 +58,12 @@ if [ -z $NODE_USER ] ; then
 fi
 
 if [ -z $NODE_IP ] ; then
-    echo '{ "error": "No IP find to delete"}'
+    echo '{ "error": "No IP find to add"}'
     exit 0
 fi
 
 NODE="$NODE_USER@$NODE_IP"
+
 if [ -z $MASTER_IP ] ; then
     echo "MASTER IP Error"
     exit 1
@@ -54,6 +81,7 @@ PORT_K8S_MASTER=8080
 BIN_ETCDCTL=/opt/bin/etcdctl
 BIN_KUBECTL=/opt/bin/kubectl
 
+# password less access for subsequent calls
 function ssh-setup()
 {
 
@@ -66,7 +94,7 @@ function ssh-setup()
    fi
 }
 
-# generate a etcd member name for new node.
+# generate a etcd member name for new node
 function create-etcd-name() {
     # this func creates etcd names like new0, new1, new2...
     # change name pattern if required. ex: pattern="infra-"
@@ -191,6 +219,7 @@ run-services >> $LOG_FILE
 
 sleep 3
 
+# Add label GCE to new k8s node
 $BIN_KUBECTL label nodes $NODE_IP type=GCE || true
 if [ $AUTOSCALE_FLAG == "True" ] ; then
     echo "Adding AutoScale label" >> $LOG_FILE

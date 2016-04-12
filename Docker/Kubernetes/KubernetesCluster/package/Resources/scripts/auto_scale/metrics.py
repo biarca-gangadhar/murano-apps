@@ -2,6 +2,25 @@
 '''This files collects the CPU metrics of all kubernetes
 minion nodes and then scales up/down nodes based on those metrics
 '''
+
+'''
+Flow:
+1. Get the user entered nodes, cpu configuration values from conf file.
+2. Collect the all minion nodes information from k8s master and store them in
+   object NODES_OBJ. From NODES_OBJ store GCE nodes into a list object
+   GCE_NODES_IN_USE and store auto created nodes into AUTOSCALE_NODES
+3. Calculated the cpu usage of each node from NODES_OBJ and save it in object
+    ALL_NODES.
+4. Scale UP: If all nodes have more than MIN_CPU_LIMIT and atleast one have
+   more than MAX_CPU_LIMIT then save CUR_HYSTERESIS with count 1. And increase
+   the count of CUR_HYSTERESIS for MAX_HYSTERESIS_COUNT times if this state
+   continuously occuring in a row and then call `scaleUpNodes` function.
+5. Scale Down: If all nodes have less than MAX_CPU_LIMIT and atleast one have
+   less than MIN_CPU_LIMIT then save CUR_HYSTERESIS with count 1. And increase
+   the count of CUR_HYSTERESIS for MAX_HYSTERESIS_COUNT times if this state
+   continuously occuring in a row. Then call `scaleDownNodes` function.
+'''
+
 import json
 import urllib.request
 import time
@@ -21,7 +40,7 @@ MIN_CPU_LIMIT = 0
 CUR_NODES_COUNT = 0
 POLLING_CLUSTER_PERIOD = 15
 NODES_OBJ = {}
-ALL_NODES = {}  # eg: { "nodeIP" { "cpu" : 40, "auto": True } }
+ALL_NODES = {}  # eg: { "nodeIP": { "cpu": 40, "auto": True } }
 MAX_HYSTERESIS_COUNT = 6
 # sample_type could be "scaleUp" or "scaleDown"
 CUR_HYSTERESIS = {"count": 0, "sample_type": None}

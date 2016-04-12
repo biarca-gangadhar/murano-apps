@@ -2,11 +2,16 @@
 # This script transfer the files which helps in
 # running autoscale service. And prepares the
 # autoscale.conf for autoscale service configuration
+# This script runs at the time of environment deployment if user
+# selects autoscale option
 
-#
-# command line arguments
-#
+# 1. This script receives the user entered autoscale configuraion values and
+# write them into $conf_file file which helps later for autoscale service
+# 2. Copy/Insatll the required files/packages to master node to run
+# autoscale service
+# 3. Start the autoscale servcie
 
+# Args:
 # $1  - max_vms_limit
 # $2  - MAX_CPU_LIMIT
 # $3  - MIN_CPU_LIMIT
@@ -39,13 +44,14 @@ sed -i "/^\[DEFAULT]/ a\username=${8}" $conf_file
 sed -i "/^\[DEFAULT]/ a\OPENSTACK_IP=${6}" $conf_file
 sed -i "/^\[GCE]/ a\gce_minion_nodes=${10}" $conf_file
 
+# Copy the files to run autoscale service
 cp auto_scale/autoscale.conf /etc/autoscale/
 cp auto_scale/metrics.py /opt/bin/autoscale/
 cp auto_scale/scale.sh /opt/bin/autoscale/
 cp auto_scale/autoscale /etc/init.d/
 chmod +x /opt/bin/autoscale/metrics.py /opt/bin/autoscale/scale.sh /etc/init.d/autoscale
 
-
+# Install packages to run autoscale service
 apt-get update &>> $log_file
 apt-get install python3-numpy -y &>> $log_file
 apt-get install jq -y &>> $log_file

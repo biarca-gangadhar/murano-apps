@@ -2,6 +2,11 @@
 # This script transfers the files  which helps in
 # adding/deleting a node to cluster
 
+# This script runs at the time of enviroment deployment if
+# user has configued Hybrid cloud options
+# This file installs required files/packes to do add/delete
+# GCE node to cluster
+
 log_file=/var/log/gce.log
 echo "Setting up GCE Common files started" >> $log_file
 

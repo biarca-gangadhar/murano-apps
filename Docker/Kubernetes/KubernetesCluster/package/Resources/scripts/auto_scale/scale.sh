@@ -6,6 +6,15 @@
 # $1 - up/down
 # $2 - gce (optional)
 
+# To schedule a Murano action we need to know Openstack IP,
+# tenantname, username and password etc. Get those details from
+# $data_file.
+# Request a token using openstack api for Authentication purpose
+# Get the environment ID by using enviroment name.
+# Get the services of that environment using environemnt id
+# Extract the available action IDs from the services of that environment
+# Now schedule the action ID based on argument received
+
 action=$1
 gce=$2
 

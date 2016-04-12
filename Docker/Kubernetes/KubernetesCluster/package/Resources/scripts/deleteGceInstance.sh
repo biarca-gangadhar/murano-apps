@@ -1,5 +1,10 @@
 #!/bin/bash
-# This script deletes GCE instance from cloud
+# This script calls compute_api.py to deletes GCE instance from cloud
+
+# To delete a GCE node, it requires the name of instance and it's zone
+# This script receives name and zone as arguments and pass them to
+# compute_api.py file
+# This script is invoked when "deleteGceNode" scheduled
 
 # Args:
 # $1 - instance name to delete
